@@ -13,5 +13,5 @@
 // supabase_schema.sql 파일의 마지막 부분에서 RLS를 설정합니다.
 // ============================================================
 
-window.__SUPABASE_URL__ = 'https://YOUR_PROJECT_REF.supabase.co';
-window.__SUPABASE_ANON_KEY__ = 'YOUR_ANON_KEY_HERE';
+window.__SUPABASE_URL__ = 'https://rfeffxzeqxcpareyczbt.supabase.co';
+window.__SUPABASE_ANON_KEY__ = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmZWZmeHplcXhjcGFyZXljemJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNzYzODUsImV4cCI6MjEwMTg1MjM4NX0.KeahHKM5Y6kt6jDj1SSlEIW3Pb28cxcrLCnb_nMkbH8';

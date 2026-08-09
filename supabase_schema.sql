@@ -261,7 +261,7 @@ $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION program_detail(program_name TEXT)
 RETURNS TABLE(cohort_name TEXT, role TEXT, person_id INTEGER, person_name TEXT,
-              organization TEXT, position TEXT, email TEXT, phone TEXT,
+              organization TEXT, "position" TEXT, email TEXT, phone TEXT,
               wftc_status TEXT, membership_tier TEXT) AS $$
   SELECT pc.cohort_name, pe.role, p.id, p.name, o.name, p.position, p.email, p.phone,
     COALESCE(wm.membership_status, '미가입'), wm.membership_tier
@@ -276,7 +276,7 @@ RETURNS TABLE(cohort_name TEXT, role TEXT, person_id INTEGER, person_name TEXT,
 $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION wftc_members_list(status_filter TEXT DEFAULT NULL)
-RETURNS TABLE(person_id INTEGER, name TEXT, organization TEXT, position TEXT,
+RETURNS TABLE(person_id INTEGER, name TEXT, organization TEXT, "position" TEXT,
               email TEXT, phone TEXT, wftc_status TEXT, membership_tier TEXT,
               member_type TEXT, join_date DATE, programs TEXT) AS $$
   SELECT p.id, p.name, o.name, p.position, p.email, p.phone,
@@ -295,7 +295,7 @@ $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION people_list(search TEXT DEFAULT NULL)
 RETURNS TABLE(person_id INTEGER, name TEXT, person_types TEXT[], organization TEXT,
-              position TEXT, email TEXT, phone TEXT, wftc_status TEXT, programs TEXT) AS $$
+              "position" TEXT, email TEXT, phone TEXT, wftc_status TEXT, programs TEXT) AS $$
   SELECT p.id, p.name, p.person_types, o.name, p.position, p.email, p.phone,
     COALESCE(wm.membership_status, '미가입'),
     (SELECT string_agg(DISTINCT ep.short_name, ', ')
@@ -312,7 +312,7 @@ $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION person_detail(person_id INTEGER)
 RETURNS TABLE(id INTEGER, name TEXT, person_types TEXT[], organization TEXT,
-              position TEXT, department TEXT, email TEXT, phone TEXT,
+              "position" TEXT, department TEXT, email TEXT, phone TEXT,
               expertise TEXT, bio TEXT, notes TEXT, wftc_status TEXT,
               membership_tier TEXT, member_type TEXT, join_date DATE, wftc_notes TEXT) AS $$
   SELECT p.id, p.name, p.person_types, o.name, p.position, p.department,
@@ -336,7 +336,7 @@ RETURNS TABLE(program TEXT, cohort_name TEXT, role TEXT, completion_status TEXT,
 $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION non_members_from_programs()
-RETURNS TABLE(person_id INTEGER, name TEXT, organization TEXT, position TEXT,
+RETURNS TABLE(person_id INTEGER, name TEXT, organization TEXT, "position" TEXT,
               email TEXT, phone TEXT, programs TEXT) AS $$
   SELECT DISTINCT p.id, p.name, o.name, p.position, p.email, p.phone,
     (SELECT string_agg(DISTINCT ep.short_name, ', ')
@@ -377,7 +377,7 @@ $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION event_presenters(event_id INTEGER)
 RETURNS TABLE(presentation_id INTEGER, person_id INTEGER, presenter_name TEXT,
-              organization TEXT, position TEXT, title TEXT, topic TEXT,
+              organization TEXT, "position" TEXT, title TEXT, topic TEXT,
               session_type TEXT, session_date DATE, session_time TEXT,
               abstract TEXT, materials_url TEXT, status TEXT) AS $$
   SELECT ep.id, ep.person_id, COALESCE(p.name, ep.presenter_name_snapshot),
@@ -430,7 +430,7 @@ RETURNS TABLE(person_id INTEGER, name TEXT, organization TEXT, presentation_coun
 $$ LANGUAGE SQL STABLE;
 
 CREATE OR REPLACE FUNCTION search_people_for_picker(q TEXT)
-RETURNS TABLE(id INTEGER, name TEXT, organization TEXT, position TEXT) AS $$
+RETURNS TABLE(id INTEGER, name TEXT, organization TEXT, "position" TEXT) AS $$
   SELECT p.id, p.name, o.name, p.position
   FROM people p
   LEFT JOIN organizations o ON o.id=p.organization_id
