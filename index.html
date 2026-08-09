@@ -1,0 +1,2541 @@
+<!DOCTYPE html>
+<html data-palette="graphite" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>푸드테크 센터 대시보드</title>
+  <style>
+    /* Extra styles on top of the injected B-Suite tokens */
+    .clickable { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+    .clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
+    .breadcrumb {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--ink-500);
+      margin-bottom: 16px;
+    }
+    .breadcrumb a {
+      color: var(--brand-500); cursor: pointer; text-decoration: none;
+    }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { color: var(--ink-300); }
+    .data-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--bg-card, #fff);
+      border-radius: var(--r-md, 8px);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .data-table th {
+      text-align: left; padding: 12px 14px;
+      background: var(--ink-050);
+      font-size: 12px; font-weight: 600;
+      color: var(--ink-700);
+      border-bottom: 1px solid var(--ink-100);
+      position: sticky; top: 0; z-index: 1;
+    }
+    .data-table td {
+      padding: 12px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--ink-050);
+      color: var(--ink-800);
+    }
+    .data-table tr:hover td { background: var(--ink-025, rgba(0,0,0,.02)); }
+    .data-table tr.row-clickable { cursor: pointer; }
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--r-md, 8px);
+    }
+    .table-wrap.scrollable {
+      max-height: calc(100vh - 260px);
+      overflow-y: auto;
+    }
+    /* When there are many small grouped tables (e.g. cohorts on a program page),
+       don't cap each one — let the page scroll normally so all rows show. */
+    .cohort-header + .table-wrap {
+      max-height: none;
+      overflow-y: visible;
+    }
+    .filter-bar {
+      display: flex; gap: 12px; align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-bar input, .filter-bar select, .form-input, .form-select, .form-textarea {
+      padding: 8px 12px;
+      border: 1px solid var(--ink-200);
+      border-radius: var(--r-sm, 6px);
+      font-size: 13px;
+      background: var(--bg-card, #fff);
+      color: var(--ink-900);
+      font-family: inherit;
+    }
+    .filter-bar input, .filter-bar select { min-width: 220px; }
+    .filter-bar .count-badge {
+      padding: 6px 12px;
+      background: var(--ink-050);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--ink-700);
+      font-weight: 500;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .status-joined { background: color-mix(in oklab, var(--success-500) 15%, transparent); color: var(--success-700, var(--success-500)); }
+    .status-none { background: var(--ink-100); color: var(--ink-600); }
+    .status-pending { background: color-mix(in oklab, var(--warn-500) 15%, transparent); color: var(--warn-700, var(--warn-500)); }
+    .status-scheduled { background: color-mix(in oklab, var(--brand-500) 15%, transparent); color: var(--brand-700, var(--brand-500)); }
+    .status-done { background: color-mix(in oklab, var(--success-500) 15%, transparent); color: var(--success-700, var(--success-500)); }
+    .status-cancelled { background: color-mix(in oklab, var(--danger-500) 12%, transparent); color: var(--danger-500); }
+    .program-card {
+      padding: 20px;
+      background: var(--bg-card, #fff);
+      border-radius: var(--r-md, 8px);
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      transition: transform .12s, box-shadow .12s;
+    }
+    .program-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.10); }
+    .program-card h3 { margin: 0 0 8px; font-size: 16px; color: var(--ink-900); }
+    .program-card .stat-row { display: flex; gap: 24px; margin-top: 12px; }
+    .program-card .stat-value { font-size: 22px; font-weight: 600; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+    .program-card .stat-label { font-size: 11px; color: var(--ink-500); text-transform: uppercase; letter-spacing: .04em; }
+    .program-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .event-card {
+      padding: 18px 20px;
+      background: var(--bg-card, #fff);
+      border-radius: var(--r-md, 8px);
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      transition: transform .12s, box-shadow .12s;
+      border-left: 3px solid var(--brand-500);
+    }
+    .event-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.10); }
+    .event-card h3 { margin: 0 0 6px; font-size: 15px; color: var(--ink-900); }
+    .event-card .event-meta {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      font-size: 12px; color: var(--ink-500);
+      margin: 6px 0;
+    }
+    .event-card .event-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .event-card .event-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .event-card .event-bottom .stat-value { font-size: 18px; font-weight: 600; }
+    .cohort-header {
+      margin: 24px 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-700);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cohort-header .badge {
+      padding: 2px 8px;
+      background: var(--ink-050);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-600);
+    }
+    .empty-msg {
+      padding: 40px;
+      text-align: center;
+      color: var(--ink-500);
+      font-size: 14px;
+      background: var(--bg-card, #fff);
+      border-radius: var(--r-md, 8px);
+      box-shadow: var(--shadow-card);
+    }
+    .empty-msg .cta { margin-top: 12px; }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .detail-field {
+      background: var(--bg-card, #fff);
+      padding: 14px 16px;
+      border-radius: var(--r-sm, 6px);
+      box-shadow: var(--shadow-card);
+    }
+    .detail-field .label {
+      font-size: 11px;
+      color: var(--ink-500);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 4px;
+    }
+    .detail-field .value {
+      font-size: 14px;
+      color: var(--ink-900);
+      word-break: break-word;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--r-sm, 6px);
+      border: 1px solid var(--ink-200);
+      background: var(--bg-card, #fff);
+      color: var(--ink-800);
+      font-size: 13px; font-weight: 500;
+      cursor: pointer;
+      transition: background .12s;
+      font-family: inherit;
+    }
+    .btn:hover { background: var(--ink-050); }
+    .btn-primary { background: var(--brand-500); color: white; border-color: var(--brand-500); }
+    .btn-primary:hover { background: var(--brand-600, var(--brand-500)); filter: brightness(.95); }
+    .btn-ghost { border-color: transparent; }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .form-full { grid-column: 1 / -1; }
+    .form-field label {
+      display: block;
+      font-size: 12px; font-weight: 500;
+      color: var(--ink-700);
+      margin-bottom: 4px;
+    }
+    .form-input, .form-select, .form-textarea { width: 100%; box-sizing: border-box; }
+    .form-textarea { min-height: 80px; resize: vertical; }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .form-hint { font-size: 11px; color: var(--ink-500); margin-top: 4px; }
+    .form-container {
+      background: var(--bg-card, #fff);
+      padding: 24px;
+      border-radius: var(--r-md, 8px);
+      box-shadow: var(--shadow-card);
+    }
+
+    /* Autocomplete */
+    .autocomplete-wrap { position: relative; }
+    .autocomplete-list {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--bg-card, #fff);
+      border: 1px solid var(--ink-200);
+      border-radius: var(--r-sm, 6px);
+      max-height: 240px; overflow: auto;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,.10);
+      display: none;
+    }
+    .autocomplete-item {
+      padding: 8px 12px; cursor: pointer;
+      font-size: 13px;
+      border-bottom: 1px solid var(--ink-050);
+    }
+    .autocomplete-item:hover, .autocomplete-item.active { background: var(--ink-050); }
+    .autocomplete-item .sub { font-size: 11px; color: var(--ink-500); margin-top: 2px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 18px;
+      border-radius: var(--r-sm, 6px);
+      background: var(--ink-900);
+      color: white;
+      font-size: 13px;
+      box-shadow: 0 6px 16px rgba(0,0,0,.20);
+      z-index: 1000;
+      opacity: 0; transform: translateY(10px);
+      transition: opacity .18s, transform .18s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: var(--success-500); }
+    .toast.error { background: var(--danger-500); }
+
+    /* ============================================================
+       SNU Marketing Dashboard theme — scoped to .snu-hero-page only.
+       Design direction: SNU deep navy anchor + gold accent, magazine-
+       style hero with the WFTC membership pipeline as the protagonist.
+       ============================================================ */
+    /* When dashboard route is active, remove the gs-wrap padding
+       so the SNU hero can reach to page edges. */
+    #root.root-fullbleed {
+      padding: 0 !important;
+      max-width: none !important;
+      margin: 0 !important;
+    }
+    .snu-hero-page {
+      --snu-navy: #003057;      /* SNU primary blue */
+      --snu-navy-2: #06213c;
+      --snu-navy-3: #001d38;
+      --snu-gold: #d4a017;      /* SNU accent gold */
+      --snu-gold-soft: #f2c744;
+      --snu-cream: #faf7f0;
+      --snu-ink: #0b1c30;
+      --snu-ink-2: #3a4a5f;
+      --snu-ink-3: #6e7c8f;
+      --snu-line: #e3e7ec;
+      --snu-line-2: #cfd6df;
+      --snu-surface: #ffffff;
+      --snu-surface-2: #f6f4ef;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Noto Sans KR', sans-serif;
+      color: var(--snu-ink);
+      width: 100%;
+    }
+    .snu-hero-page * { box-sizing: border-box; }
+
+    /* ---- Hero ---- */
+    .snu-hero {
+      background:
+        radial-gradient(ellipse 80% 60% at 85% -20%, rgba(212,160,23,.14), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, rgba(0,120,200,.10), transparent 60%),
+        linear-gradient(180deg, var(--snu-navy-3) 0%, var(--snu-navy) 100%);
+      color: #fff;
+      padding: 44px 40px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .snu-hero::before {
+      /* subtle grid pattern */
+      content: "";
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+    }
+    .snu-hero-inner { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; }
+    .snu-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .16em; text-transform: uppercase;
+      color: var(--snu-gold-soft);
+      margin-bottom: 20px;
+    }
+    .snu-eyebrow::before {
+      content: ""; width: 24px; height: 1px; background: var(--snu-gold);
+    }
+    .snu-hero h1.snu-headline {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 4vw, 46px);
+      line-height: 1.12;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      max-width: 720px;
+      text-wrap: pretty;
+    }
+    .snu-hero h1.snu-headline .accent { color: var(--snu-gold-soft); }
+    .snu-hero .snu-lead {
+      font-size: 15px;
+      line-height: 1.6;
+      color: rgba(255,255,255,.75);
+      max-width: 620px;
+      margin: 0 0 32px;
+    }
+
+    /* Hero pipeline: the star of the page */
+    .snu-pipeline {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      padding: 24px 28px 20px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .snu-pipeline-title {
+      font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(255,255,255,.55);
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .snu-pipeline-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .snu-stage {
+      position: relative;
+      padding: 6px 4px 4px 0;
+    }
+    .snu-stage + .snu-stage::before {
+      content: "→";
+      position: absolute;
+      left: -14px; top: 18px;
+      color: rgba(255,255,255,.28);
+      font-size: 16px;
+    }
+    .snu-stage-label {
+      font-size: 11px;
+      color: rgba(255,255,255,.55);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .snu-stage-value {
+      font-size: 30px;
+      font-weight: 700;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      display: flex; align-items: baseline; gap: 6px;
+    }
+    .snu-stage-value .unit { font-size: 13px; font-weight: 400; color: rgba(255,255,255,.55); }
+    .snu-stage.final .snu-stage-value { color: var(--snu-gold-soft); }
+    .snu-stage-bar {
+      margin-top: 10px;
+      height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,.10);
+      overflow: hidden;
+    }
+    .snu-stage-bar > span {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, var(--snu-gold) 0%, var(--snu-gold-soft) 100%);
+      border-radius: 2px;
+      transition: width .6s cubic-bezier(.2,.7,.2,1);
+    }
+
+    /* CTAs under hero */
+    .snu-hero-ctas {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .snu-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 20px;
+      font-size: 14px; font-weight: 600;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform .12s, background .12s, border-color .12s;
+      font-family: inherit;
+    }
+    .snu-btn-primary {
+      background: var(--snu-gold);
+      color: var(--snu-navy-2);
+    }
+    .snu-btn-primary:hover { background: var(--snu-gold-soft); transform: translateY(-1px); }
+    .snu-btn-ghost {
+      background: transparent;
+      color: #fff;
+      border-color: rgba(255,255,255,.30);
+    }
+    .snu-btn-ghost:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.50); }
+    .snu-btn-arrow::after { content: "→"; }
+
+    /* ---- Content sections below hero ---- */
+    .snu-content {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 56px 40px 48px;
+      background: var(--snu-surface);
+    }
+    .snu-section { margin-bottom: 56px; }
+    .snu-section:last-child { margin-bottom: 0; }
+
+    .snu-section-head {
+      display: flex; align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .snu-section-title {
+      font-size: 24px; font-weight: 700; letter-spacing: -0.01em;
+      color: var(--snu-ink);
+      margin: 0;
+    }
+    .snu-section-title .num {
+      display: inline-block;
+      font-size: 12px; font-weight: 600;
+      color: var(--snu-navy);
+      margin-right: 12px;
+      letter-spacing: .12em;
+      vertical-align: middle;
+      transform: translateY(-2px);
+    }
+    .snu-section-sub {
+      font-size: 14px; color: var(--snu-ink-3); margin: 6px 0 0;
+    }
+    .snu-section-link {
+      font-size: 13px; font-weight: 600;
+      color: var(--snu-navy);
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .snu-section-link:hover { color: var(--snu-gold); }
+
+    /* Stat grid — used by "Reach" section */
+    .snu-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0;
+      border: 1px solid var(--snu-line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--snu-surface);
+    }
+    .snu-stat {
+      padding: 24px 28px;
+      border-right: 1px solid var(--snu-line);
+      cursor: pointer;
+      transition: background .12s;
+      position: relative;
+    }
+    .snu-stat:last-child { border-right: none; }
+    .snu-stat:hover { background: var(--snu-surface-2); }
+    .snu-stat-label {
+      font-size: 12px; font-weight: 500;
+      color: var(--snu-ink-3);
+      letter-spacing: .04em;
+      margin-bottom: 8px;
+    }
+    .snu-stat-value {
+      font-size: 34px; font-weight: 700; line-height: 1;
+      font-variant-numeric: tabular-nums;
+      color: var(--snu-ink);
+    }
+    .snu-stat-sub {
+      font-size: 12px;
+      color: var(--snu-ink-3);
+      margin-top: 8px;
+    }
+    @media (max-width: 700px) {
+      .snu-stat { border-right: none; border-bottom: 1px solid var(--snu-line); }
+      .snu-stat:last-child { border-bottom: none; }
+    }
+
+    /* Program showcase cards */
+    .snu-program-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .snu-program-grid { grid-template-columns: 1fr; }
+    }
+    .snu-program {
+      background: var(--snu-surface);
+      border: 1px solid var(--snu-line);
+      border-radius: 14px;
+      padding: 28px 26px;
+      cursor: pointer;
+      transition: transform .18s, border-color .18s, box-shadow .18s;
+      position: relative;
+      overflow: hidden;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .snu-program::before {
+      content: "";
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--snu-navy), var(--snu-gold));
+      opacity: 0; transition: opacity .18s;
+    }
+    .snu-program:hover {
+      transform: translateY(-3px);
+      border-color: var(--snu-navy);
+      box-shadow: 0 14px 32px rgba(0,48,87,.14);
+    }
+    .snu-program:hover::before { opacity: 1; }
+    .snu-program-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .snu-program-index {
+      font-size: 11px; font-weight: 600; letter-spacing: .12em;
+      color: var(--snu-navy);
+      opacity: .55;
+    }
+    .snu-program-title {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.005em;
+      color: var(--snu-ink);
+      margin: 0;
+      line-height: 1.3;
+    }
+    .snu-program-desc {
+      font-size: 13px; color: var(--snu-ink-3);
+      line-height: 1.5;
+      margin: 0;
+    }
+    .snu-program-stats {
+      display: flex; gap: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--snu-line);
+    }
+    .snu-program-stat { }
+    .snu-program-stat .n {
+      font-size: 22px; font-weight: 700;
+      color: var(--snu-ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .snu-program-stat .l {
+      font-size: 11px; color: var(--snu-ink-3);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-top: 2px;
+    }
+    .snu-program-arrow {
+      align-self: flex-end;
+      color: var(--snu-navy);
+      font-weight: 600;
+      font-size: 13px;
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity .18s, transform .18s;
+    }
+    .snu-program:hover .snu-program-arrow { opacity: 1; transform: translateX(0); }
+
+    /* Events section: 2-column layout */
+    .snu-events-layout {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) { .snu-events-layout { grid-template-columns: 1fr; } }
+
+    .snu-event-list {
+      background: var(--snu-surface);
+      border: 1px solid var(--snu-line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .snu-event-row {
+      display: grid;
+      grid-template-columns: 96px 1fr auto;
+      gap: 20px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--snu-line);
+      cursor: pointer;
+      transition: background .12s;
+      align-items: center;
+    }
+    .snu-event-row:last-child { border-bottom: none; }
+    .snu-event-row:hover { background: var(--snu-surface-2); }
+    .snu-event-date {
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      color: var(--snu-navy);
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .snu-event-date .y { display: block; font-size: 11px; color: var(--snu-ink-3); font-weight: 500; margin-top: 2px; letter-spacing: .04em; }
+    .snu-event-name { font-size: 15px; font-weight: 600; color: var(--snu-ink); margin: 0 0 4px; }
+    .snu-event-meta { font-size: 12px; color: var(--snu-ink-3); display: flex; gap: 10px; flex-wrap: wrap; }
+    .snu-event-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--snu-navy);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    .snu-event-count {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .snu-event-count .n { font-size: 22px; font-weight: 700; color: var(--snu-navy); }
+    .snu-event-count .l { font-size: 10px; color: var(--snu-ink-3); text-transform: uppercase; letter-spacing: .08em; }
+
+    .snu-top-presenters {
+      background: var(--snu-navy);
+      color: #fff;
+      border-radius: 12px;
+      padding: 24px 26px;
+      position: relative;
+      overflow: hidden;
+    }
+    .snu-top-presenters::before {
+      content: ""; position: absolute; top: -30%; right: -20%;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(212,160,23,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .snu-top-title {
+      font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--snu-gold-soft);
+      margin: 0 0 18px;
+      font-weight: 600;
+      position: relative;
+    }
+    .snu-presenter {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      cursor: pointer;
+      position: relative;
+      transition: transform .12s;
+    }
+    .snu-presenter:last-child { border-bottom: none; }
+    .snu-presenter:hover { transform: translateX(2px); }
+    .snu-presenter .rank {
+      font-size: 12px; font-weight: 700;
+      color: var(--snu-gold-soft);
+      font-variant-numeric: tabular-nums;
+      opacity: .8;
+    }
+    .snu-presenter .info .name { font-size: 14px; font-weight: 600; }
+    .snu-presenter .info .org { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 2px; }
+    .snu-presenter .count {
+      font-size: 13px; font-weight: 700;
+      color: var(--snu-gold-soft);
+      font-variant-numeric: tabular-nums;
+    }
+    .snu-presenter .count .u { font-size: 10px; font-weight: 400; color: rgba(255,255,255,.55); margin-left: 2px; }
+
+    /* CTA card at bottom */
+    .snu-cta {
+      background: linear-gradient(135deg, var(--snu-navy) 0%, var(--snu-navy-2) 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 32px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .snu-cta::before {
+      content: "";
+      position: absolute; right: -60px; top: 50%;
+      width: 240px; height: 240px;
+      transform: translateY(-50%);
+      background: radial-gradient(circle, rgba(212,160,23,.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .snu-cta:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(0,48,87,.20); }
+    .snu-cta-text h3 {
+      margin: 0 0 6px;
+      font-size: 22px; font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .snu-cta-text p {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(255,255,255,.75);
+      max-width: 520px;
+    }
+    .snu-cta-text .highlight {
+      color: var(--snu-gold-soft);
+      font-weight: 700;
+    }
+    .snu-cta-action {
+      flex-shrink: 0;
+      background: var(--snu-gold);
+      color: var(--snu-navy-2);
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-size: 14px; font-weight: 700;
+      display: inline-flex; align-items: center; gap: 6px;
+      white-space: nowrap;
+    }
+
+    /* Two-column donut/detail row */
+    .snu-detail-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) { .snu-detail-row { grid-template-columns: 1fr; } }
+    .snu-panel {
+      background: var(--snu-surface);
+      border: 1px solid var(--snu-line);
+      border-radius: 12px;
+      padding: 24px 26px;
+    }
+    .snu-panel-title {
+      font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--snu-ink-3);
+      margin: 0 0 18px;
+      font-weight: 600;
+    }
+    .snu-donut-flex { display: flex; align-items: center; gap: 28px; }
+    .snu-donut-legend { flex: 1; }
+    .snu-donut-legend .item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--snu-line);
+      font-size: 13px;
+    }
+    .snu-donut-legend .item:last-child { border-bottom: none; }
+    .snu-donut-legend .sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .snu-donut-legend .lbl { flex: 1; color: var(--snu-ink); }
+    .snu-donut-legend .n { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--snu-ink); }
+    .snu-donut-legend .p { color: var(--snu-ink-3); margin-left: 8px; font-size: 12px; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .snu-hero-inner > * { animation: snu-fade-in .5s ease both; }
+      .snu-hero .snu-eyebrow { animation-delay: .04s; }
+      .snu-hero h1 { animation-delay: .12s; }
+      .snu-hero .snu-lead { animation-delay: .18s; }
+      .snu-pipeline { animation-delay: .24s; }
+      .snu-hero-ctas { animation-delay: .32s; }
+      @keyframes snu-fade-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    }
+
+    /* ---- Calendar section ---- */
+    .snu-cal-scroller {
+      position: relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 8px;
+      scroll-behavior: smooth;
+      /* Hide scrollbar for a cleaner look but keep it usable. */
+      scrollbar-width: thin;
+      scrollbar-color: var(--snu-line-2) transparent;
+    }
+    .snu-cal-scroller::-webkit-scrollbar { height: 8px; }
+    .snu-cal-scroller::-webkit-scrollbar-thumb { background: var(--snu-line-2); border-radius: 4px; }
+    .snu-cal-scroller::-webkit-scrollbar-track { background: transparent; }
+
+    .snu-cal-track {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 260px;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .snu-cal-month-group {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 260px;
+      gap: 16px;
+    }
+
+    .snu-cal-month-label {
+      position: sticky; left: 0;
+      display: flex; align-items: center; justify-content: center;
+      min-width: 68px;
+      background: var(--snu-surface);
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 11px; font-weight: 700;
+      color: var(--snu-navy);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      border-right: 1px solid var(--snu-line);
+      padding: 4px 0;
+    }
+
+    .snu-cal-card {
+      background: var(--snu-surface);
+      border: 1px solid var(--snu-line);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform .18s, border-color .18s, box-shadow .18s;
+      position: relative;
+      min-height: 200px;
+    }
+    .snu-cal-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--snu-navy);
+      box-shadow: 0 10px 24px rgba(0,48,87,.10);
+    }
+    .snu-cal-card.past {
+      background: var(--snu-surface-2);
+      opacity: .82;
+    }
+    .snu-cal-card.upcoming::before {
+      content: "";
+      position: absolute; top: 12px; right: 12px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--snu-gold);
+      box-shadow: 0 0 0 3px rgba(212,160,23,.20);
+    }
+    .snu-cal-date-block {
+      display: flex; align-items: baseline; gap: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .snu-cal-date-block .day {
+      font-size: 32px; font-weight: 700; color: var(--snu-navy); line-height: 1;
+    }
+    .snu-cal-date-block .rest {
+      font-size: 12px; color: var(--snu-ink-3); letter-spacing: .04em;
+    }
+    .snu-cal-type {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--snu-navy);
+      color: #fff;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .06em;
+      align-self: flex-start;
+    }
+    .snu-cal-name {
+      font-size: 14px; font-weight: 600;
+      color: var(--snu-ink);
+      line-height: 1.35;
+      /* Clamp to 2 lines */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .snu-cal-loc {
+      font-size: 12px;
+      color: var(--snu-ink-3);
+      margin-top: auto;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .snu-cal-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--snu-line);
+      font-size: 11px;
+    }
+    .snu-cal-footer .n {
+      font-weight: 700; color: var(--snu-navy);
+      font-variant-numeric: tabular-nums;
+    }
+    .snu-cal-empty {
+      background: var(--snu-surface);
+      border: 1px dashed var(--snu-line-2);
+      border-radius: 12px;
+      padding: 44px 24px;
+      text-align: center;
+      color: var(--snu-ink-3);
+    }
+    .snu-cal-empty p { margin: 0 0 14px; font-size: 14px; }
+
+    /* Divider between month groups (subtle) */
+    .snu-cal-month-divider {
+      width: 1px;
+      background: var(--snu-line);
+      margin: 8px 4px;
+      align-self: stretch;
+    }
+    .snu-cal-today-line {
+      width: 2px;
+      background: linear-gradient(180deg, var(--snu-gold) 0%, var(--snu-gold-soft) 100%);
+      margin: 8px 4px;
+      align-self: stretch;
+      position: relative;
+      border-radius: 2px;
+    }
+    .snu-cal-today-line::before {
+      content: "TODAY";
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%) rotate(-90deg);
+      transform-origin: center;
+      font-size: 9px; font-weight: 800;
+      letter-spacing: .18em;
+      color: var(--snu-gold);
+      white-space: nowrap;
+      background: var(--snu-surface);
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-top: 24px;
+    }
+
+    /* ---- Popover for calendar card ---- */
+    .snu-popover-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(3, 20, 40, .35);
+      z-index: 900;
+      opacity: 0; pointer-events: none;
+      transition: opacity .18s;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    .snu-popover-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .snu-popover {
+      position: fixed;
+      z-index: 901;
+      background: var(--snu-surface);
+      border-radius: 14px;
+      box-shadow: 0 24px 56px rgba(0,20,40,.25);
+      width: min(440px, calc(100vw - 32px));
+      overflow: hidden;
+      opacity: 0; transform: translateY(6px) scale(.98);
+      transition: opacity .18s, transform .18s;
+      pointer-events: none;
+    }
+    .snu-popover.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .snu-popover-header {
+      background: linear-gradient(135deg, var(--snu-navy) 0%, var(--snu-navy-2) 100%);
+      color: #fff;
+      padding: 20px 24px 16px;
+      position: relative;
+    }
+    .snu-popover-header .type-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--snu-gold);
+      color: var(--snu-navy-2);
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .snu-popover-header h3 {
+      margin: 0 0 6px;
+      font-size: 18px; font-weight: 700;
+      line-height: 1.3;
+    }
+    .snu-popover-header .meta {
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      font-variant-numeric: tabular-nums;
+    }
+    .snu-popover-close {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      width: 28px; height: 28px;
+      border: none; border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .12s;
+    }
+    .snu-popover-close:hover { background: rgba(255,255,255,.22); }
+    .snu-popover-body {
+      padding: 18px 24px 22px;
+    }
+    .snu-popover-body .field {
+      display: flex; gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+    .snu-popover-body .field .k {
+      color: var(--snu-ink-3);
+      min-width: 60px;
+      font-size: 12px;
+    }
+    .snu-popover-body .field .v {
+      color: var(--snu-ink);
+      flex: 1;
+      word-break: break-word;
+    }
+    .snu-popover-desc {
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--snu-line);
+      font-size: 13px;
+      color: var(--snu-ink-2);
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .snu-popover-actions {
+      display: flex; gap: 10px;
+      padding: 12px 24px 20px;
+      justify-content: flex-end;
+      background: var(--snu-surface-2);
+      border-top: 1px solid var(--snu-line);
+    }
+  </style></style>
+</head>
+<body>
+  <div id="loading" class="gs-empty" style="min-height:60vh">로딩 중…</div>
+  <div id="error" class="gs-empty" style="display:none;color:var(--danger-500)"></div>
+  <div id="root" class="gs-wrap" style="display:none"></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    var g = window.gsDash;
+
+    // ---------- Utility ----------
+    function esc(s) {
+      if (s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function statusPill(status) {
+      if (status === '가입 완료') return `<span class="status-pill status-joined">가입 완료</span>`;
+      if (status === '미가입') return `<span class="status-pill status-none">미가입</span>`;
+      return `<span class="status-pill status-pending">${esc(status)}</span>`;
+    }
+    function eventStatusPill(status) {
+      const cls = status === '종료' ? 'status-done'
+        : status === '취소' ? 'status-cancelled'
+        : (status === '진행중' || status === '준비중') ? 'status-scheduled'
+        : 'status-none';
+      return `<span class="status-pill ${cls}">${esc(status || '')}</span>`;
+    }
+    function eventTypeBadge(type) {
+      return `<span class="status-pill status-none">${esc(type || '')}</span>`;
+    }
+    function fmtDate(d) {
+      if (!d) return '';
+      try {
+        const dt = new Date(d);
+        if (isNaN(dt)) return String(d);
+        return `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
+      } catch { return String(d); }
+    }
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      const errEl = document.getElementById('error');
+      errEl.replaceChildren();
+      const text = document.createElement('div');
+      text.textContent = '오류: ' + msg;
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = '다시 시도';
+      btn.onclick = () => { errEl.style.display = 'none'; document.getElementById('loading').style.display = 'block'; renderRoute(); };
+      errEl.append(text, btn);
+      errEl.style.display = 'flex';
+    }
+    function showRoot() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('root').style.display = 'block';
+    }
+    function toast(msg, kind) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + (kind || '');
+      clearTimeout(t.__hideTimer);
+      t.__hideTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    // ---------- Router ----------
+    var route = { view: 'dashboard', params: {} };
+    function navigate(view, params) {
+      route = { view: view, params: params || {} };
+      window.scrollTo(0, 0);
+      renderRoute();
+    }
+    window.__nav = navigate;
+
+    async function renderRoute() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('root').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
+      // Root layout mode: dashboard = full-bleed hero; other views = padded wrap.
+      const rootEl = document.getElementById('root');
+      if (route.view === 'dashboard') {
+        rootEl.classList.add('root-fullbleed');
+      } else {
+        rootEl.classList.remove('root-fullbleed');
+      }
+      try {
+        const v = route.view;
+        if (v === 'dashboard') await renderDashboard();
+        else if (v === 'programs') await renderProgramsIndex();
+        else if (v === 'program') await renderProgramDetail(route.params.program);
+        else if (v === 'wftc') await renderWftcList(route.params.status);
+        else if (v === 'people') await renderPeopleList();
+        else if (v === 'person') await renderPersonDetail(route.params.person_id);
+        else if (v === 'non_members') await renderNonMembers();
+        else if (v === 'events') await renderEventsList();
+        else if (v === 'event') await renderEventDetail(route.params.event_id);
+        else if (v === 'event_new') await renderEventForm();
+        else if (v === 'presentation_new') await renderPresentationForm(route.params.event_id, route.params.person_id);
+        else await renderDashboard();
+        showRoot();
+      } catch (e) {
+        console.error('[error]', e);
+        showError(e.message || String(e));
+      }
+    }
+
+    function breadcrumb(items) {
+      const html = items.map((it, i) => {
+        const isLast = i === items.length - 1;
+        if (isLast) return `<span>${esc(it.label)}</span>`;
+        const p = JSON.stringify(it.params || {}).replace(/"/g, '&quot;');
+        return `<a onclick="__nav('${it.view}', ${p})">${esc(it.label)}</a><span class="sep">›</span>`;
+      }).join('');
+      return `<div class="breadcrumb">${html}</div>`;
+    }
+
+    function kpiTile(label, value, sub, onclick, accent) {
+      const accentColor = accent === 'good' ? 'var(--success-500)' : accent === 'alert' ? 'var(--warn-500)' : accent === 'brand' ? 'var(--brand-500)' : 'var(--ink-700)';
+      const handler = onclick.toString().replace(/^\(\) => /, '');
+      return `
+        <div class="clickable" onclick="${handler}"
+          style="padding:16px 18px; background:var(--bg-card,#fff); border-radius:var(--r-md,8px); box-shadow:var(--shadow-card)">
+          <div class="t-micro" style="color:var(--ink-500); margin-bottom:6px">${esc(label)}</div>
+          <div style="font-size:26px; font-weight:600; color:${accentColor}; font-variant-numeric:tabular-nums">${g.fmtInt(value)}</div>
+          ${sub ? `<div class="t-small" style="color:var(--ink-500); margin-top:2px">${esc(sub)}</div>` : ''}
+        </div>
+      `;
+    }
+
+    // ---------- View: Dashboard ----------
+    async function renderDashboard() {
+      const [kpiRes, wftcRes, funnelRes, progRes, evKpiRes, evListRes, evTypeRes, topPresRes, calRes] = await Promise.all([
+        window.agentdb.executeQuery('summary_kpis', {}),
+        window.agentdb.executeQuery('wftc_status_breakdown', {}),
+        window.agentdb.executeQuery('enrollment_to_wftc_funnel', {}),
+        window.agentdb.executeQuery('programs_summary', {}),
+        window.agentdb.executeQuery('events_kpis', {}),
+        window.agentdb.executeQuery('events_list', { status_filter: null, type_filter: null }),
+        window.agentdb.executeQuery('events_by_type', {}),
+        window.agentdb.executeQuery('top_presenters', {}),
+        window.agentdb.executeQuery('events_calendar_window', {}),
+      ]);
+      const k = kpiRes.rows[0] || {};
+      const f = funnelRes.rows[0] || {};
+      const ek = evKpiRes.rows[0] || {};
+
+      const totalPeople = Number(k.total_people) || 0;
+      const joined = Number(k.wftc_members) || 0;
+      const nonMemberCount = totalPeople - joined;
+      const conversionPct = totalPeople > 0 ? Math.round(joined / totalPeople * 100) : 0;
+
+      // Funnel stages — normalize to max for the bar width
+      const stages = [
+        { label: '전체 수강생', value: Number(f.enrolled_total || 0), key: 'enrolled' },
+        { label: '가입 권유 중', value: Number(f.invited || 0), key: 'invited' },
+        { label: '가입 신청',   value: Number(f.applied || 0), key: 'applied' },
+        { label: '가입 완료',   value: Number(f.joined || 0), key: 'joined' },
+      ];
+      const stageMax = Math.max(1, ...stages.map(s => s.value));
+
+      const root = document.getElementById('root');
+      root.innerHTML = `
+        <div class="snu-hero-page">
+          <!-- HERO -->
+          <section class="snu-hero">
+            <div class="snu-hero-inner">
+              <div class="snu-eyebrow">서울대학교 푸드테크 센터 · 월드푸드테크협의회</div>
+              <h1 class="snu-headline">
+                교육과정을 이수한 <span class="accent">${g.fmtInt(stages[0].value)}명</span>이
+                <br>월드푸드테크협의회의 다음 세대가 됩니다.
+              </h1>
+              <p class="snu-lead">
+                최고책임자·기술사업화·계약학과 3개 과정을 거친 인재풀 안에서
+                협의회 가입 파이프라인을 추적하고, 미가입 수료생에게 가입을 안내합니다.
+              </p>
+
+              <div class="snu-pipeline">
+                <div class="snu-pipeline-title">협의회 가입 파이프라인</div>
+                <div class="snu-pipeline-row">
+                  ${stages.map((s, i) => `
+                    <div class="snu-stage ${i === stages.length - 1 ? 'final' : ''}">
+                      <div class="snu-stage-label">${esc(s.label)}</div>
+                      <div class="snu-stage-value">${g.fmtInt(s.value)}<span class="unit">명</span></div>
+                      <div class="snu-stage-bar"><span style="width:${Math.round(s.value / stageMax * 100)}%"></span></div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="snu-hero-ctas">
+                <button class="snu-btn snu-btn-primary snu-btn-arrow" data-nav="non_members">
+                  가입 권유 대상 ${g.fmtInt(nonMemberCount)}명 보기
+                </button>
+                <button class="snu-btn snu-btn-ghost" data-nav="wftc" data-status="가입 완료">
+                  가입 완료 회원 살펴보기
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- CONTENT -->
+          <div class="snu-content">
+
+            <!-- Section 1: Reach / totals -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">01</span>규모</h2>
+                  <p class="snu-section-sub">지금 이 시스템이 관리하는 사람과 활동의 총량</p>
+                </div>
+              </div>
+              <div class="snu-stat-grid">
+                <div class="snu-stat" data-nav="people">
+                  <div class="snu-stat-label">전체 관리 인원</div>
+                  <div class="snu-stat-value">${g.fmtInt(totalPeople)}</div>
+                  <div class="snu-stat-sub">기업 임원·학생·교수·강사·협의회 회원</div>
+                </div>
+                <div class="snu-stat" data-nav="wftc" data-status="가입 완료">
+                  <div class="snu-stat-label">협의회 가입 완료</div>
+                  <div class="snu-stat-value">${g.fmtInt(joined)}<span style="font-size:14px; color:var(--snu-ink-3); font-weight:400; margin-left:6px">· ${conversionPct}%</span></div>
+                  <div class="snu-stat-sub">전체 대비 가입률</div>
+                </div>
+                <div class="snu-stat" data-nav="programs">
+                  <div class="snu-stat-label">교육과정 참여</div>
+                  <div class="snu-stat-value">${g.fmtInt(k.total_enrollments)}</div>
+                  <div class="snu-stat-sub">누적 수강 이력 건수</div>
+                </div>
+                <div class="snu-stat" data-nav="events">
+                  <div class="snu-stat-label">행사 · 발표</div>
+                  <div class="snu-stat-value">${g.fmtInt(ek.total_events)}<span style="font-size:14px; color:var(--snu-ink-3); font-weight:400; margin-left:6px">· ${g.fmtInt(ek.total_presentations)}건</span></div>
+                  <div class="snu-stat-sub">행사 개수 · 발표 세션 수</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 2: Programs -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">02</span>교육과정</h2>
+                  <p class="snu-section-sub">3개 교육과정의 참여 현황 · 카드 클릭 시 기수별 명단으로 이동</p>
+                </div>
+                <span class="snu-section-link" data-nav="programs">전체 보기 →</span>
+              </div>
+              <div class="snu-program-grid" id="snu-program-grid"></div>
+            </section>
+
+            <!-- Section 3: WFTC status donut + type breakdown -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">03</span>구성</h2>
+                  <p class="snu-section-sub">협의회 가입 상태와 행사 유형 분포</p>
+                </div>
+              </div>
+              <div class="snu-detail-row">
+                <div class="snu-panel">
+                  <div class="snu-panel-title">협의회 가입 상태</div>
+                  <div id="snu-wftc-donut"></div>
+                </div>
+                <div class="snu-panel">
+                  <div class="snu-panel-title">행사 유형별 개최 수</div>
+                  <div id="snu-event-types"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 4: Calendar (upcoming events window) -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">04</span>행사 캘린더</h2>
+                  <p class="snu-section-sub">오늘 기준 앞뒤 3개월 · 카드를 클릭하면 요약, 다시 클릭하면 상세 페이지로</p>
+                </div>
+                <div style="display:flex; gap:12px; align-items:center">
+                  <button class="snu-btn snu-btn-primary" data-nav="event_new" style="padding:9px 16px; font-size:13px">+ 행사 등록</button>
+                  <span class="snu-section-link" data-nav="events">전체 행사 →</span>
+                </div>
+              </div>
+              <div id="snu-calendar"></div>
+            </section>
+
+            <!-- Section 5: Events + Top presenters -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">05</span>행사 · 발표 활동</h2>
+                  <p class="snu-section-sub">최근 25개 행사 · 896건의 발표가 진행되었습니다</p>
+                </div>
+                <span class="snu-section-link" data-nav="events">전체 행사 →</span>
+              </div>
+              <div class="snu-events-layout" id="snu-events-layout"></div>
+            </section>
+
+            <!-- Section 6: Non-member CTA -->
+            <section class="snu-section" id="snu-cta-section"></section>
+
+          </div>
+        </div>
+      `;
+
+      // ============= Program cards =============
+      const progGrid = document.getElementById('snu-program-grid');
+      progGrid.innerHTML = progRes.rows.map((p, i) => `
+        <div class="snu-program" data-program="${esc(p.name)}">
+          <div>
+            <div class="snu-program-head">
+              <div class="snu-program-index">Program ${String(i+1).padStart(2, '0')}</div>
+            </div>
+            <h3 class="snu-program-title">${esc(p.name)}</h3>
+            <p class="snu-program-desc">${esc(p.description || '')}</p>
+          </div>
+          <div class="snu-program-stats">
+            <div class="snu-program-stat"><div class="n">${g.fmtInt(p.students)}</div><div class="l">수강생</div></div>
+            <div class="snu-program-stat"><div class="n">${g.fmtInt(p.lecturers)}</div><div class="l">강사</div></div>
+            <div class="snu-program-stat"><div class="n">${g.fmtInt(p.cohort_count)}</div><div class="l">기수</div></div>
+          </div>
+          <div class="snu-program-arrow">자세히 보기 →</div>
+        </div>
+      `).join('');
+      progGrid.querySelectorAll('.snu-program').forEach(card => {
+        card.addEventListener('click', () => __nav('program', { program: card.dataset.program }));
+      });
+
+      // ============= Calendar (upcoming events) =============
+      renderSnuCalendar('snu-calendar', calRes.rows);
+
+      // ============= WFTC donut (custom, SNU-colored) =============
+      renderSnuDonut('snu-wftc-donut', wftcRes.rows.map(r => ({
+        label: r.status,
+        value: Number(r.person_count),
+      })));
+
+      // ============= Event types bar =============
+      renderSnuHBar('snu-event-types', evTypeRes.rows.map(r => ({
+        label: r.event_type,
+        value: Number(r.event_count),
+      })));
+
+      // ============= Events + top presenters =============
+      const layoutEl = document.getElementById('snu-events-layout');
+      const recentEvents = evListRes.rows.slice(0, 6);
+      const eventListHtml = recentEvents.length === 0
+        ? `<div class="snu-panel" style="text-align:center; padding:48px 24px">
+             <p style="margin:0 0 12px; color:var(--snu-ink-3)">아직 등록된 행사가 없습니다</p>
+             <button class="snu-btn snu-btn-primary" data-nav="event_new">첫 행사 등록하기</button>
+           </div>`
+        : `<div class="snu-event-list" id="snu-event-list">
+             ${recentEvents.map(e => renderSnuEventRow(e)).join('')}
+           </div>`;
+
+      const topPresHtml = topPresRes.rows.length === 0
+        ? `<div class="snu-top-presenters">
+             <p class="snu-top-title">Top Presenters</p>
+             <p style="color:rgba(255,255,255,.6); font-size:13px; margin:0">발표 등록 후 표시됩니다</p>
+           </div>`
+        : `<div class="snu-top-presenters">
+             <p class="snu-top-title">발표 TOP 10</p>
+             ${topPresRes.rows.map((r, i) => `
+               <div class="snu-presenter" data-person-id="${r.person_id}">
+                 <div class="rank">${String(i+1).padStart(2, '0')}</div>
+                 <div class="info">
+                   <div class="name">${esc(r.name)}</div>
+                   <div class="org">${esc(r.organization || '')}</div>
+                 </div>
+                 <div class="count">${g.fmtInt(r.presentation_count)}<span class="u">건</span></div>
+               </div>
+             `).join('')}
+           </div>`;
+
+      layoutEl.innerHTML = eventListHtml + topPresHtml;
+
+      layoutEl.querySelectorAll('.snu-event-row').forEach(row => {
+        row.addEventListener('click', () => __nav('event', { event_id: Number(row.dataset.eventId) }));
+      });
+      layoutEl.querySelectorAll('.snu-presenter').forEach(p => {
+        p.addEventListener('click', () => __nav('person', { person_id: Number(p.dataset.personId) }));
+      });
+
+      // ============= Non-member CTA =============
+      document.getElementById('snu-cta-section').innerHTML = `
+        <div class="snu-cta" data-nav="non_members">
+          <div class="snu-cta-text">
+            <h3>가입 권유 대상 <span class="highlight">${g.fmtInt(nonMemberCount)}명</span></h3>
+            <p>교육과정을 이수했지만 아직 협의회에 가입하지 않은 인재풀입니다. 이 인원을 협의회 회원으로 안내하는 것이 이번 시즌의 핵심 목표입니다.</p>
+          </div>
+          <div class="snu-cta-action">명단 열기 →</div>
+        </div>
+      `;
+
+      // Wire up all elements with data-nav
+      root.querySelectorAll('[data-nav]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const view = el.dataset.nav;
+          const params = {};
+          if (el.dataset.status) params.status = el.dataset.status;
+          __nav(view, params);
+        });
+      });
+    }
+
+    // Render event row for the SNU dashboard event list
+    function renderSnuEventRow(e) {
+      const d = e.start_date ? new Date(e.start_date) : null;
+      const monthDay = d ? `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}` : '—';
+      const year = d ? d.getFullYear() : '';
+      return `
+        <div class="snu-event-row" data-event-id="${e.id}">
+          <div class="snu-event-date">${monthDay}<span class="y">${year}</span></div>
+          <div>
+            <div class="snu-event-name">${esc(e.name)}${e.edition ? ' · ' + esc(e.edition) : ''}</div>
+            <div class="snu-event-meta">
+              <span class="snu-event-badge">${esc(e.event_type || '')}</span>
+              ${e.location ? `<span>${esc(e.location)}</span>` : ''}
+              ${e.status && e.status !== '종료' ? `<span style="color:var(--snu-gold)">● ${esc(e.status)}</span>` : ''}
+            </div>
+          </div>
+          <div class="snu-event-count">
+            <div class="n">${g.fmtInt(e.presentation_count)}</div>
+            <div class="l">발표</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Custom donut renderer using SVG — matches SNU palette
+    function renderSnuDonut(elementId, rows) {
+      const total = rows.reduce((s, r) => s + r.value, 0) || 1;
+      const colors = ['#003057', '#d4a017', '#5a7a9a', '#8ba3bd', '#c2ceda'];
+      const cx = 90, cy = 90, r = 70, strokeW = 26;
+      const circ = 2 * Math.PI * r;
+
+      let offset = 0;
+      const segments = rows.map((row, i) => {
+        const pct = row.value / total;
+        const len = pct * circ;
+        const seg = `
+          <circle cx="${cx}" cy="${cy}" r="${r}"
+            fill="none" stroke="${colors[i % colors.length]}"
+            stroke-width="${strokeW}"
+            stroke-dasharray="${len} ${circ - len}"
+            stroke-dashoffset="${-offset}"
+            transform="rotate(-90 ${cx} ${cy})" />
+        `;
+        offset += len;
+        return seg;
+      }).join('');
+
+      const legend = rows.map((row, i) => `
+        <div class="item">
+          <div class="sw" style="background:${colors[i % colors.length]}"></div>
+          <div class="lbl">${esc(row.label)}</div>
+          <div class="n">${window.gsDash.fmtInt(row.value)}</div>
+          <div class="p">${Math.round(row.value / total * 100)}%</div>
+        </div>
+      `).join('');
+
+      document.getElementById(elementId).innerHTML = `
+        <div class="snu-donut-flex">
+          <svg width="180" height="180" viewBox="0 0 180 180" style="flex-shrink:0">
+            ${segments}
+            <text x="90" y="86" text-anchor="middle" style="font-size:26px; font-weight:700; fill:var(--snu-ink); font-variant-numeric:tabular-nums">${window.gsDash.fmtInt(total)}</text>
+            <text x="90" y="106" text-anchor="middle" style="font-size:11px; fill:var(--snu-ink-3); letter-spacing:.08em">TOTAL</text>
+          </svg>
+          <div class="snu-donut-legend">${legend}</div>
+        </div>
+      `;
+    }
+
+    // Custom horizontal bar renderer — SNU palette
+    function renderSnuHBar(elementId, rows) {
+      const max = Math.max(1, ...rows.map(r => r.value));
+      const html = rows.map(r => {
+        const pct = Math.round(r.value / max * 100);
+        return `
+          <div style="margin-bottom:14px">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px">
+              <span style="color:var(--snu-ink)">${esc(r.label)}</span>
+              <span style="color:var(--snu-ink); font-weight:600; font-variant-numeric:tabular-nums">${window.gsDash.fmtInt(r.value)}건</span>
+            </div>
+            <div style="height:6px; background:var(--snu-line); border-radius:3px; overflow:hidden">
+              <div style="height:100%; width:${pct}%; background:linear-gradient(90deg, var(--snu-navy), var(--snu-gold)); border-radius:3px; transition:width .6s"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById(elementId).innerHTML = html;
+    }
+
+    // ============= Calendar (3-month window) =============
+    function renderSnuCalendar(elementId, rows) {
+      const container = document.getElementById(elementId);
+      if (!container) return;
+
+      if (rows.length === 0) {
+        container.innerHTML = `
+          <div class="snu-cal-empty">
+            <p>오늘 기준 앞뒤 3개월 안에 예정된 행사가 없습니다.</p>
+            <button class="snu-btn snu-btn-primary" data-nav="event_new">+ 행사 등록</button>
+          </div>
+        `;
+        // Wire the button
+        container.querySelector('[data-nav]')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          __nav('event_new');
+        });
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString().slice(0, 10);
+
+      // Group events by year-month
+      const groups = new Map(); // "YYYY-MM" -> [events]
+      rows.forEach(r => {
+        const d = new Date(r.start_date);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      });
+      const monthKeys = Array.from(groups.keys()).sort();
+
+      // Find where "today" belongs so we can insert the today-line divider
+      // Iterate months and events in order, remembering the position to inject.
+      const cells = []; // each cell is HTML string
+      let todayInserted = false;
+
+      const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+      for (const mkey of monthKeys) {
+        const [y, m] = mkey.split('-').map(Number);
+        const monthLabel = `${y}. ${monthNames[m-1]}`;
+
+        // Month label cell (single column, sticky-ish)
+        cells.push(`<div class="snu-cal-month-label">${monthLabel}</div>`);
+
+        const events = groups.get(mkey).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+        for (const e of events) {
+          // If we haven't inserted today-line yet and this event is on/after today, insert it now.
+          if (!todayInserted && e.start_date >= todayISO) {
+            cells.push(`<div class="snu-cal-today-line" aria-label="today"></div>`);
+            todayInserted = true;
+          }
+          cells.push(renderSnuCalendarCard(e, todayISO));
+        }
+      }
+
+      // If today falls after all events in window, append at the end
+      if (!todayInserted) {
+        cells.push(`<div class="snu-cal-today-line" aria-label="today"></div>`);
+      }
+
+      container.innerHTML = `
+        <div class="snu-cal-scroller">
+          <div class="snu-cal-track">${cells.join('')}</div>
+        </div>
+      `;
+
+      // Wire card clicks -> popover
+      container.querySelectorAll('.snu-cal-card').forEach(card => {
+        card.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const evId = Number(card.dataset.eventId);
+          openEventPopover(evId, card);
+        });
+      });
+
+      // Scroll to the today-line so upcoming events are visible on load
+      requestAnimationFrame(() => {
+        const scroller = container.querySelector('.snu-cal-scroller');
+        const line = container.querySelector('.snu-cal-today-line');
+        if (scroller && line) {
+          const target = Math.max(0, line.offsetLeft - 80);
+          scroller.scrollLeft = target;
+        }
+      });
+    }
+
+    function renderSnuCalendarCard(e, todayISO) {
+      const d = new Date(e.start_date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+      const monthShort = `${d.getMonth()+1}월`;
+      const isPast = e.start_date < todayISO;
+      const isUpcoming = e.start_date >= todayISO;
+
+      const endStr = e.end_date && e.end_date !== e.start_date
+        ? ` ~ ${new Date(e.end_date).getDate()}일` : '';
+
+      return `
+        <div class="snu-cal-card ${isPast ? 'past' : ''} ${isUpcoming ? 'upcoming' : ''}" data-event-id="${e.id}">
+          <div class="snu-cal-date-block">
+            <span class="day">${day}</span>
+            <span class="rest">${monthShort} · ${dow}${endStr}</span>
+          </div>
+          <span class="snu-cal-type">${esc(e.event_type || '')}</span>
+          <div class="snu-cal-name">${esc(e.name)}${e.edition ? ' · ' + esc(e.edition) : ''}</div>
+          ${e.location ? `<div class="snu-cal-loc">${esc(e.location)}</div>` : ''}
+          <div class="snu-cal-footer">
+            <span style="color:var(--snu-ink-3)">${esc(e.status || '')}</span>
+            <span><span class="n">${window.gsDash.fmtInt(e.presentation_count)}</span> 발표</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============= Popover for calendar card =============
+    let popoverState = { open: false, eventId: null };
+
+    async function openEventPopover(eventId, sourceEl) {
+      // If clicking same card again while open — go to detail page.
+      if (popoverState.open && popoverState.eventId === eventId) {
+        closeEventPopover();
+        __nav('event', { event_id: eventId });
+        return;
+      }
+      // Different card / new open — fetch data first
+      let data;
+      try {
+        const res = await window.agentdb.executeQuery('event_summary_popup', { event_id: eventId });
+        data = res.rows[0];
+      } catch (e) { console.error(e); return; }
+      if (!data) return;
+
+      ensurePopoverElements();
+      const backdrop = document.getElementById('snu-popover-backdrop');
+      const pop = document.getElementById('snu-popover');
+
+      const startDate = fmtDate(data.start_date);
+      const endDate = data.end_date && data.end_date !== data.start_date ? fmtDate(data.end_date) : null;
+      const dateStr = endDate ? `${startDate} ~ ${endDate}` : startDate;
+
+      pop.innerHTML = `
+        <div class="snu-popover-header">
+          <button class="snu-popover-close" aria-label="닫기">×</button>
+          <div class="type-badge">${esc(data.event_type || '')}</div>
+          <h3>${esc(data.name)}${data.edition ? ' · ' + esc(data.edition) : ''}</h3>
+          <div class="meta">${esc(dateStr)}${data.location ? ' · ' + esc(data.location) : ''}</div>
+        </div>
+        <div class="snu-popover-body">
+          <div class="field">
+            <div class="k">상태</div>
+            <div class="v">${esc(data.status || '')}</div>
+          </div>
+          ${data.theme ? `
+            <div class="field">
+              <div class="k">주제</div>
+              <div class="v">${esc(data.theme)}</div>
+            </div>
+          ` : ''}
+          <div class="field">
+            <div class="k">발표</div>
+            <div class="v"><b>${window.gsDash.fmtInt(data.presentation_count)}</b>건</div>
+          </div>
+          ${data.top_presenters ? `
+            <div class="field">
+              <div class="k">발표자</div>
+              <div class="v" style="font-size:12px; color:var(--snu-ink-2)">${esc(data.top_presenters)}${data.presentation_count > 5 ? ' 외 ' + (data.presentation_count - 5) + '명' : ''}</div>
+            </div>
+          ` : ''}
+          ${data.description ? `<div class="snu-popover-desc">${esc(data.description)}</div>` : ''}
+        </div>
+        <div class="snu-popover-actions">
+          <button class="snu-btn snu-btn-ghost" id="snu-popover-cancel"
+            style="color:var(--snu-ink); border-color:var(--snu-line-2); padding:8px 16px; font-size:13px">닫기</button>
+          <button class="snu-btn snu-btn-primary" id="snu-popover-detail"
+            style="padding:8px 18px; font-size:13px">상세 페이지 →</button>
+        </div>
+      `;
+
+      // Position: center on screen for simplicity, works on mobile too
+      pop.style.left = '50%';
+      pop.style.top = '50%';
+      pop.style.transform = 'translate(-50%, -50%) scale(.98)';
+
+      backdrop.classList.add('open');
+      pop.classList.add('open');
+      // After adding .open, the transform gets overridden by CSS to remove scale;
+      // but our inline transform wins. Adjust with a followup rAF to let CSS take over.
+      requestAnimationFrame(() => {
+        pop.style.transform = 'translate(-50%, -50%) scale(1)';
+      });
+      popoverState = { open: true, eventId };
+
+      // Wire buttons
+      pop.querySelector('.snu-popover-close').onclick = closeEventPopover;
+      document.getElementById('snu-popover-cancel').onclick = closeEventPopover;
+      document.getElementById('snu-popover-detail').onclick = () => {
+        closeEventPopover();
+        __nav('event', { event_id: eventId });
+      };
+    }
+
+    function closeEventPopover() {
+      const backdrop = document.getElementById('snu-popover-backdrop');
+      const pop = document.getElementById('snu-popover');
+      if (backdrop) backdrop.classList.remove('open');
+      if (pop) pop.classList.remove('open');
+      popoverState = { open: false, eventId: null };
+    }
+
+    function ensurePopoverElements() {
+      if (document.getElementById('snu-popover')) return;
+      const backdrop = document.createElement('div');
+      backdrop.id = 'snu-popover-backdrop';
+      backdrop.className = 'snu-popover-backdrop';
+      backdrop.onclick = closeEventPopover;
+      document.body.appendChild(backdrop);
+
+      const pop = document.createElement('div');
+      pop.id = 'snu-popover';
+      pop.className = 'snu-popover';
+      document.body.appendChild(pop);
+
+      // ESC to close
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && popoverState.open) closeEventPopover();
+      });
+    }
+
+    function renderEventCard(e) {
+      const dateStr = e.start_date ? fmtDate(e.start_date) + (e.end_date && e.end_date !== e.start_date ? ' ~ ' + fmtDate(e.end_date) : '') : '일정 미정';
+      return `
+        <div class="event-card" onclick="__nav('event', {event_id: ${e.id}})">
+          <div style="display:flex; gap:8px; margin-bottom:8px">
+            ${eventTypeBadge(e.event_type)}
+            ${eventStatusPill(e.status)}
+          </div>
+          <h3>${esc(e.name)}${e.edition ? ' · ' + esc(e.edition) : ''}</h3>
+          <div class="event-meta">
+            <span>📅 ${esc(dateStr)}</span>
+            ${e.location ? `<span>📍 ${esc(e.location)}</span>` : ''}
+          </div>
+          ${e.theme ? `<div class="t-small" style="color:var(--ink-600); margin-top:4px">${esc(e.theme)}</div>` : ''}
+          <div class="event-bottom">
+            <div>
+              <span class="stat-value">${g.fmtInt(e.presentation_count)}</span>
+              <span class="t-small" style="color:var(--ink-500); margin-left:4px">발표 · ${g.fmtInt(e.presenter_count)}인</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ---------- View: Programs Index ----------
+    async function renderProgramsIndex() {
+      const res = await window.agentdb.executeQuery('programs_summary', {});
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label: '대시보드', view: 'dashboard'}, {label: '교육과정'}])}
+        <h1 class="t-h1" style="margin:0 0 6px">교육과정</h1>
+        <p class="t-body" style="margin:0 0 20px">과정을 클릭하면 기수별 참여자 목록을 볼 수 있습니다.</p>
+        <div class="program-grid" id="programs-index-grid">
+          ${res.rows.map(p => `
+            <div class="program-card" data-program="${esc(p.name)}">
+              <h3>${esc(p.name)}</h3>
+              <div class="t-small" style="color:var(--ink-500)">${esc(p.description || '')}</div>
+              <div class="stat-row">
+                <div><div class="stat-value">${g.fmtInt(p.students)}</div><div class="stat-label">수강생</div></div>
+                <div><div class="stat-value">${g.fmtInt(p.lecturers)}</div><div class="stat-label">강사</div></div>
+                <div><div class="stat-value">${g.fmtInt(p.cohort_count)}</div><div class="stat-label">기수</div></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      document.querySelectorAll('#programs-index-grid .program-card').forEach(card => {
+        card.addEventListener('click', () => __nav('program', { program: card.dataset.program }));
+      });
+    }
+
+    // ---------- View: Program Detail ----------
+    async function renderProgramDetail(programName) {
+      const res = await window.agentdb.executeQuery('program_detail', { program_name: programName });
+      const rows = res.rows;
+      const byCohort = {};
+      for (const r of rows) {
+        const key = r.cohort_name || '(기수 없음)';
+        (byCohort[key] = byCohort[key] || []).push(r);
+      }
+      // Sort cohorts: student cohorts first (by numeric edition ascending), lecturer group last.
+      function cohortSortKey(name) {
+        if (name === '강사진 통합') return [2, 0, name]; // last group
+        const m = String(name).match(/(\d+)/);
+        const num = m ? parseInt(m[1], 10) : 999999;
+        return [1, num, name];
+      }
+      const cohortNames = Object.keys(byCohort).sort((a, b) => {
+        const ka = cohortSortKey(a), kb = cohortSortKey(b);
+        if (ka[0] !== kb[0]) return ka[0] - kb[0];
+        if (ka[1] !== kb[1]) return ka[1] - kb[1];
+        return ka[2].localeCompare(kb[2]);
+      });
+
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([
+          {label: '대시보드', view: 'dashboard'},
+          {label: '교육과정', view: 'programs'},
+          {label: programName}
+        ])}
+        <h1 class="t-h1" style="margin:0 0 6px">${esc(programName)}</h1>
+        <p class="t-body" style="margin:0 0 20px">
+          총 <b>${g.fmtInt(rows.length)}</b>건의 참여 기록 · <b>${cohortNames.length}</b>개 기수
+        </p>
+        <div class="filter-bar">
+          <input type="text" placeholder="이름·소속·이메일 검색…" oninput="__filterTable('prog-table', this.value)">
+          <span class="count-badge">${g.fmtInt(rows.length)}건</span>
+        </div>
+        ${cohortNames.map(cn => {
+          const rs = byCohort[cn];
+          return `
+            <div class="cohort-header">
+              <span>${esc(cn)}</span>
+              <span class="badge">${g.fmtInt(rs.length)}명</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" data-search-table="prog-table">
+                <thead>
+                  <tr>
+                    <th>이름</th><th>역할</th><th>소속</th><th>직위</th>
+                    <th>이메일</th><th>전화</th><th>협의회</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rs.map(r => `
+                    <tr class="row-clickable" onclick="__nav('person', {person_id: ${r.person_id}})">
+                      <td><b>${esc(r.person_name)}</b></td>
+                      <td>${esc(r.role || '')}</td>
+                      <td>${esc(r.organization || '')}</td>
+                      <td>${esc(r.position || '')}</td>
+                      <td>${esc(r.email || '')}</td>
+                      <td>${esc(r.phone || '')}</td>
+                      <td>${statusPill(r.wftc_status)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }).join('')}
+      `;
+    }
+
+    // ---------- View: WFTC Members List ----------
+    async function renderWftcList(statusFilter) {
+      const res = await window.agentdb.executeQuery('wftc_members_list', { status_filter: statusFilter || null });
+      const title = statusFilter ? `협의회 · ${statusFilter}` : '협의회 회원 전체';
+
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label: title}])}
+        <h1 class="t-h1" style="margin:0 0 6px">${esc(title)}</h1>
+        <p class="t-body" style="margin:0 0 20px">총 <b>${g.fmtInt(res.rows.length)}</b>명</p>
+        <div class="filter-bar">
+          <input type="text" placeholder="이름·소속·이메일 검색…" oninput="__filterTable('wftc-table', this.value)">
+          <select onchange="__nav('wftc', {status: this.value || null})">
+            <option value="">전체</option>
+            <option value="가입 완료" ${statusFilter==='가입 완료'?'selected':''}>가입 완료</option>
+            <option value="미가입" ${statusFilter==='미가입'?'selected':''}>미가입</option>
+          </select>
+          <span class="count-badge">${g.fmtInt(res.rows.length)}명</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" data-search-table="wftc-table">
+            <thead>
+              <tr>
+                <th>이름</th><th>소속</th><th>직위</th><th>참여 과정</th>
+                <th>이메일</th><th>협의회 상태</th><th>등급</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${res.rows.map(r => `
+                <tr class="row-clickable" onclick="__nav('person', {person_id: ${r.person_id}})">
+                  <td><b>${esc(r.name)}</b></td>
+                  <td>${esc(r.organization || '')}</td>
+                  <td>${esc(r.position || '')}</td>
+                  <td>${esc(r.programs || '')}</td>
+                  <td>${esc(r.email || '')}</td>
+                  <td>${statusPill(r.wftc_status)}</td>
+                  <td>${esc(r.membership_tier || '')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ---------- View: People List ----------
+    async function renderPeopleList() {
+      const res = await window.agentdb.executeQuery('people_list', { search: null });
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label:'전체 인원'}])}
+        <h1 class="t-h1" style="margin:0 0 6px">전체 인원</h1>
+        <p class="t-body" style="margin:0 0 20px">총 <b>${g.fmtInt(res.rows.length)}</b>명</p>
+        <div class="filter-bar">
+          <input type="text" placeholder="이름·소속·이메일 검색…" oninput="__filterTable('people-table', this.value)">
+          <span class="count-badge">${g.fmtInt(res.rows.length)}명</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" data-search-table="people-table">
+            <thead>
+              <tr>
+                <th>이름</th><th>유형</th><th>소속</th><th>직위</th>
+                <th>참여 과정</th><th>이메일</th><th>협의회</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${res.rows.map(r => `
+                <tr class="row-clickable" onclick="__nav('person', {person_id: ${r.person_id}})">
+                  <td><b>${esc(r.name)}</b></td>
+                  <td>${esc((r.person_types || []).join(', '))}</td>
+                  <td>${esc(r.organization || '')}</td>
+                  <td>${esc(r.position || '')}</td>
+                  <td>${esc(r.programs || '')}</td>
+                  <td>${esc(r.email || '')}</td>
+                  <td>${statusPill(r.wftc_status)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ---------- View: Person Detail ----------
+    async function renderPersonDetail(personId) {
+      const [detailRes, enrollRes, presentationRes] = await Promise.all([
+        window.agentdb.executeQuery('person_detail', { person_id: personId }),
+        window.agentdb.executeQuery('person_enrollments', { person_id: personId }),
+        window.agentdb.executeQuery('person_presentations', { person_id: personId }),
+      ]);
+      const p = detailRes.rows[0];
+      if (!p) throw new Error('사람 정보를 찾을 수 없습니다');
+
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label:'전체 인원', view:'people'}, {label: p.name}])}
+        <div style="display:flex; justify-content:space-between; align-items:start; gap:16px">
+          <div>
+            <h1 class="t-h1" style="margin:0 0 6px">${esc(p.name)}</h1>
+            <p class="t-body" style="margin:0 0 20px">
+              ${statusPill(p.wftc_status)}
+              ${(p.person_types || []).map(t => `<span class="status-pill status-none" style="margin-left:6px">${esc(t)}</span>`).join('')}
+            </p>
+          </div>
+          <button class="btn" onclick='__nav("presentation_new", {person_id: ${personId}})'>+ 발표 추가</button>
+        </div>
+
+        <div class="detail-grid">
+          ${field('소속', p.organization)}
+          ${field('직위', p.position)}
+          ${field('부서/학과', p.department)}
+          ${field('이메일', p.email)}
+          ${field('전화', p.phone)}
+          ${field('전문 분야', p.expertise)}
+          ${field('협의회 등급', p.membership_tier)}
+          ${field('회원 유형', p.member_type)}
+          ${field('가입일', p.join_date)}
+        </div>
+
+        <h2 class="t-h2" style="margin:24px 0 12px">교육과정 참여 이력</h2>
+        ${enrollRes.rows.length === 0 ? `
+          <div class="empty-msg">참여 이력이 없습니다.</div>
+        ` : `
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>교육과정</th><th>기수</th><th>역할</th><th>상태</th><th>비고</th></tr>
+              </thead>
+              <tbody>
+                ${enrollRes.rows.map(e => `
+                  <tr>
+                    <td><b>${esc(e.program)}</b></td>
+                    <td>${esc(e.cohort_name)}</td>
+                    <td>${esc(e.role)}</td>
+                    <td>${esc(e.completion_status)}</td>
+                    <td>${esc(e.notes || '')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+
+        <h2 class="t-h2" style="margin:32px 0 12px">
+          발표 이력
+          <span class="badge" style="font-size:12px; font-weight:500; color:var(--ink-500); margin-left:8px">${presentationRes.rows.length}건</span>
+        </h2>
+        ${presentationRes.rows.length === 0 ? `
+          <div class="empty-msg">
+            아직 발표 이력이 없습니다.
+            <div class="cta">
+              <button class="btn btn-primary" onclick='__nav("presentation_new", {person_id: ${personId}})'>발표 추가</button>
+            </div>
+          </div>
+        ` : `
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>일자</th><th>행사</th><th>제목</th><th>주제</th>
+                  <th>세션 유형</th><th>상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${presentationRes.rows.map(r => `
+                  <tr class="row-clickable" onclick="__nav('event', {event_id: ${r.event_id}})">
+                    <td>${esc(fmtDate(r.session_date || r.event_date))}</td>
+                    <td><b>${esc(r.event_name)}</b> <span class="status-pill status-none" style="margin-left:6px">${esc(r.event_type || '')}</span></td>
+                    <td>${esc(r.title)}</td>
+                    <td>${esc(r.topic || '')}</td>
+                    <td>${esc(r.session_type || '')}</td>
+                    <td>${eventStatusPill(r.status)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+
+        ${p.notes || p.wftc_notes ? `
+          <h2 class="t-h2" style="margin:32px 0 12px">비고</h2>
+          <div class="detail-field">
+            ${p.notes ? `<div class="value">${esc(p.notes)}</div>` : ''}
+            ${p.wftc_notes ? `<div class="value" style="margin-top:8px"><b>협의회:</b> ${esc(p.wftc_notes)}</div>` : ''}
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function field(label, value) {
+      if (!value) return '';
+      return `
+        <div class="detail-field">
+          <div class="label">${esc(label)}</div>
+          <div class="value">${esc(value)}</div>
+        </div>
+      `;
+    }
+
+    // ---------- View: Non-Members ----------
+    async function renderNonMembers() {
+      const res = await window.agentdb.executeQuery('non_members_from_programs', {});
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label:'가입 권유 대상'}])}
+        <h1 class="t-h1" style="margin:0 0 6px">가입 권유 대상</h1>
+        <p class="t-body" style="margin:0 0 20px">
+          교육과정을 이수했지만 협의회에 미가입한 <b>${g.fmtInt(res.rows.length)}명</b>
+        </p>
+        <div class="filter-bar">
+          <input type="text" placeholder="이름·소속·이메일 검색…" oninput="__filterTable('nm-table', this.value)">
+          <span class="count-badge">${g.fmtInt(res.rows.length)}명</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" data-search-table="nm-table">
+            <thead>
+              <tr>
+                <th>이름</th><th>소속</th><th>직위</th><th>참여 과정</th>
+                <th>이메일</th><th>전화</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${res.rows.map(r => `
+                <tr class="row-clickable" onclick="__nav('person', {person_id: ${r.person_id}})">
+                  <td><b>${esc(r.name)}</b></td>
+                  <td>${esc(r.organization || '')}</td>
+                  <td>${esc(r.position || '')}</td>
+                  <td>${esc(r.programs || '')}</td>
+                  <td>${esc(r.email || '')}</td>
+                  <td>${esc(r.phone || '')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ---------- View: Events List ----------
+    async function renderEventsList() {
+      const res = await window.agentdb.executeQuery('events_list', { status_filter: null, type_filter: null });
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label:'행사'}])}
+        <div style="display:flex; justify-content:space-between; align-items:baseline">
+          <div>
+            <h1 class="t-h1" style="margin:0 0 6px">행사</h1>
+            <p class="t-body" style="margin:0 0 20px">총 <b>${g.fmtInt(res.rows.length)}</b>개 행사</p>
+          </div>
+          <button class="btn btn-primary" onclick="__nav('event_new')">+ 행사 등록</button>
+        </div>
+        ${res.rows.length === 0 ? `
+          <div class="empty-msg">
+            아직 등록된 행사가 없습니다.
+            <div class="cta">
+              <button class="btn btn-primary" onclick="__nav('event_new')">첫 행사 등록하기</button>
+            </div>
+          </div>
+        ` : `
+          <div class="program-grid">
+            ${res.rows.map(e => renderEventCard(e)).join('')}
+          </div>
+        `}
+      `;
+    }
+
+    // ---------- View: Event Detail ----------
+    async function renderEventDetail(eventId) {
+      const [detailRes, presRes] = await Promise.all([
+        window.agentdb.executeQuery('event_detail', { event_id: eventId }),
+        window.agentdb.executeQuery('event_presenters', { event_id: eventId }),
+      ]);
+      const e = detailRes.rows[0];
+      if (!e) throw new Error('행사 정보를 찾을 수 없습니다');
+      const dateStr = e.start_date ? fmtDate(e.start_date) + (e.end_date && e.end_date !== e.start_date ? ' ~ ' + fmtDate(e.end_date) : '') : '일정 미정';
+
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label:'행사', view:'events'}, {label: e.name}])}
+        <div style="display:flex; justify-content:space-between; align-items:start; gap:16px">
+          <div>
+            <div style="display:flex; gap:8px; margin-bottom:8px">
+              ${eventTypeBadge(e.event_type)}
+              ${eventStatusPill(e.status)}
+            </div>
+            <h1 class="t-h1" style="margin:0 0 6px">${esc(e.name)}${e.edition ? ' · ' + esc(e.edition) : ''}</h1>
+            <p class="t-body" style="margin:0 0 20px">
+              📅 ${esc(dateStr)}
+              ${e.location ? ` · 📍 ${esc(e.location)}` : ''}
+            </p>
+          </div>
+          <button class="btn btn-primary" onclick="__nav('presentation_new', {event_id: ${eventId}})">+ 발표 추가</button>
+        </div>
+
+        <div class="detail-grid">
+          ${field('주제', e.theme)}
+          ${field('시작일', fmtDate(e.start_date))}
+          ${field('종료일', fmtDate(e.end_date))}
+          ${field('장소', e.location)}
+        </div>
+
+        ${e.description ? `
+          <div class="detail-field" style="margin-bottom:24px">
+            <div class="label">설명</div>
+            <div class="value" style="white-space:pre-wrap">${esc(e.description)}</div>
+          </div>
+        ` : ''}
+
+        <h2 class="t-h2" style="margin:24px 0 12px">
+          발표 세션
+          <span class="badge" style="font-size:12px; font-weight:500; color:var(--ink-500); margin-left:8px">${presRes.rows.length}건</span>
+        </h2>
+        ${presRes.rows.length === 0 ? `
+          <div class="empty-msg">
+            아직 등록된 발표가 없습니다.
+            <div class="cta">
+              <button class="btn btn-primary" onclick="__nav('presentation_new', {event_id: ${eventId}})">첫 발표 등록하기</button>
+            </div>
+          </div>
+        ` : `
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>일시</th><th>발표자</th><th>소속</th><th>제목</th>
+                  <th>주제</th><th>유형</th><th>상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${presRes.rows.map(r => `
+                  <tr class="${r.person_id ? 'row-clickable' : ''}"
+                      ${r.person_id ? `onclick="__nav('person', {person_id: ${r.person_id}})"` : ''}>
+                    <td>${esc(fmtDate(r.session_date))} ${esc(r.session_time || '')}</td>
+                    <td><b>${esc(r.presenter_name || '')}</b></td>
+                    <td>${esc(r.organization || '')}</td>
+                    <td>${esc(r.title || '')}</td>
+                    <td>${esc(r.topic || '')}</td>
+                    <td>${esc(r.session_type || '')}</td>
+                    <td>${eventStatusPill(r.status)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      `;
+    }
+
+    // ---------- View: Event New (Form) ----------
+    async function renderEventForm() {
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label:'행사', view:'events'}, {label:'새 행사 등록'}])}
+        <h1 class="t-h1" style="margin:0 0 20px">새 행사 등록</h1>
+        <div class="form-container">
+          <div class="form-grid">
+            <div class="form-field form-full">
+              <label>행사명 <span style="color:var(--danger-500)">*</span></label>
+              <input type="text" class="form-input" id="ev-name" placeholder="예: 월드푸드테크 컨펙스">
+            </div>
+            <div class="form-field">
+              <label>행사 유형 <span style="color:var(--danger-500)">*</span></label>
+              <select class="form-select" id="ev-type">
+                <option value="ConFex">ConFex (컨펙스)</option>
+                <option value="Summit">Summit (써밋)</option>
+                <option value="Forum">Forum (포럼)</option>
+                <option value="세미나">세미나</option>
+                <option value="워크숍">워크숍</option>
+                <option value="실증사업 발표회">실증사업 발표회</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>회차/에디션</label>
+              <input type="text" class="form-input" id="ev-edition" placeholder="예: 2026, 제3회">
+            </div>
+            <div class="form-field">
+              <label>시작일</label>
+              <input type="date" class="form-input" id="ev-start">
+            </div>
+            <div class="form-field">
+              <label>종료일</label>
+              <input type="date" class="form-input" id="ev-end">
+            </div>
+            <div class="form-field">
+              <label>장소</label>
+              <input type="text" class="form-input" id="ev-location" placeholder="예: 킨텍스">
+            </div>
+            <div class="form-field">
+              <label>상태</label>
+              <select class="form-select" id="ev-status">
+                <option value="예정">예정</option>
+                <option value="준비중">준비중</option>
+                <option value="진행중">진행중</option>
+                <option value="종료">종료</option>
+                <option value="취소">취소</option>
+              </select>
+            </div>
+            <div class="form-field form-full">
+              <label>대주제</label>
+              <input type="text" class="form-input" id="ev-theme" placeholder="예: 글로벌 창발 생태계 통합 플랫폼">
+            </div>
+            <div class="form-field form-full">
+              <label>설명</label>
+              <textarea class="form-textarea" id="ev-desc" placeholder="행사 개요, 주최/후원, 특이사항 등"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn" onclick="__nav('events')">취소</button>
+            <button class="btn btn-primary" id="ev-submit">등록</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('ev-submit').onclick = submitEvent;
+    }
+
+    async function submitEvent() {
+      const name = document.getElementById('ev-name').value.trim();
+      const type = document.getElementById('ev-type').value;
+      if (!name) { toast('행사명을 입력하세요', 'error'); return; }
+      const btn = document.getElementById('ev-submit');
+      btn.disabled = true; btn.textContent = '등록 중…';
+      try {
+        const res = await window.agentdb.executeQuery('create_event', {
+          name: name,
+          event_type: type,
+          edition: document.getElementById('ev-edition').value.trim() || null,
+          start_date: document.getElementById('ev-start').value || '',
+          end_date: document.getElementById('ev-end').value || '',
+          location: document.getElementById('ev-location').value.trim() || null,
+          theme: document.getElementById('ev-theme').value.trim() || null,
+          status: document.getElementById('ev-status').value,
+          description: document.getElementById('ev-desc').value.trim() || null,
+        });
+        const newId = res.rows[0].id;
+        toast('행사가 등록되었습니다', 'success');
+        __nav('event', { event_id: newId });
+      } catch (e) {
+        toast('등록 실패: ' + e.message, 'error');
+        btn.disabled = false; btn.textContent = '등록';
+      }
+    }
+
+    // ---------- View: Presentation New (Form) ----------
+    // Pre-selects: event (if given) or person (if given)
+    async function renderPresentationForm(preEventId, prePersonId) {
+      // If launched from a person page, we need to let user pick an event; if from an event, pick a person.
+      // Fetch preselection details
+      let events = (await window.agentdb.executeQuery('events_list', { status_filter: null, type_filter: null })).rows;
+      let preselectedEvent = preEventId ? events.find(e => e.id === Number(preEventId)) : null;
+      let preselectedPerson = null;
+      if (prePersonId) {
+        const pr = await window.agentdb.executeQuery('person_detail', { person_id: prePersonId });
+        preselectedPerson = pr.rows[0];
+      }
+
+      const trailLabel = preselectedEvent ? preselectedEvent.name : (preselectedPerson ? preselectedPerson.name : '새 발표 등록');
+      const trailBack = preselectedEvent
+        ? {label: preselectedEvent.name, view: 'event', params: {event_id: preselectedEvent.id}}
+        : preselectedPerson
+          ? {label: preselectedPerson.name, view: 'person', params: {person_id: preselectedPerson.id}}
+          : {label:'행사', view:'events'};
+
+      document.getElementById('root').innerHTML = `
+        ${breadcrumb([{label:'대시보드', view:'dashboard'}, trailBack, {label:'새 발표 등록'}])}
+        <h1 class="t-h1" style="margin:0 0 20px">새 발표 등록</h1>
+        <div class="form-container">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>행사 <span style="color:var(--danger-500)">*</span></label>
+              ${preselectedEvent ? `
+                <div class="detail-field" style="padding:8px 12px">
+                  <div class="value">${esc(preselectedEvent.name)}${preselectedEvent.edition ? ' · ' + esc(preselectedEvent.edition) : ''}</div>
+                </div>
+                <input type="hidden" id="pr-event-id" value="${preselectedEvent.id}">
+              ` : `
+                <select class="form-select" id="pr-event-id">
+                  ${events.length === 0 ? '<option value="">등록된 행사 없음</option>' : ''}
+                  ${events.map(e => `<option value="${e.id}">${esc(e.name)}${e.edition ? ' · ' + esc(e.edition) : ''}</option>`).join('')}
+                </select>
+                ${events.length === 0 ? `<div class="form-hint">먼저 <a onclick="__nav('event_new')" style="color:var(--brand-500); cursor:pointer">행사를 등록</a>하세요.</div>` : ''}
+              `}
+            </div>
+            <div class="form-field">
+              <label>발표자 (등록된 인원)</label>
+              ${preselectedPerson ? `
+                <div class="detail-field" style="padding:8px 12px">
+                  <div class="value">${esc(preselectedPerson.name)}${preselectedPerson.organization ? ' · ' + esc(preselectedPerson.organization) : ''}</div>
+                </div>
+                <input type="hidden" id="pr-person-id" value="${preselectedPerson.id}">
+              ` : `
+                <div class="autocomplete-wrap">
+                  <input type="text" class="form-input" id="pr-person-search" placeholder="이름·소속으로 검색…" autocomplete="off">
+                  <input type="hidden" id="pr-person-id" value="">
+                  <div class="autocomplete-list" id="pr-person-list"></div>
+                </div>
+                <div class="form-hint">등록되지 않은 외부 발표자는 아래에 이름만 입력하세요.</div>
+              `}
+            </div>
+            ${preselectedPerson ? '' : `
+              <div class="form-field">
+                <label>외부 발표자 이름 (선택)</label>
+                <input type="text" class="form-input" id="pr-name-snapshot" placeholder="등록 인원이 없을 때 이름 직접 입력">
+              </div>
+            `}
+            <div class="form-field form-full">
+              <label>발표 제목 <span style="color:var(--danger-500)">*</span></label>
+              <input type="text" class="form-input" id="pr-title" placeholder="발표 제목">
+            </div>
+            <div class="form-field">
+              <label>주제 분류</label>
+              <input type="text" class="form-input" id="pr-topic" placeholder="예: 세포배양식품, 푸드테크 정책">
+            </div>
+            <div class="form-field">
+              <label>세션 유형</label>
+              <select class="form-select" id="pr-session-type">
+                <option value="세션 발표">세션 발표</option>
+                <option value="기조연설">기조연설</option>
+                <option value="패널토론">패널토론</option>
+                <option value="워크숍">워크숍</option>
+                <option value="포스터">포스터</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>발표 일자</label>
+              <input type="date" class="form-input" id="pr-date">
+            </div>
+            <div class="form-field">
+              <label>발표 시간</label>
+              <input type="text" class="form-input" id="pr-time" placeholder="예: 14:00-14:30">
+            </div>
+            <div class="form-field">
+              <label>상태</label>
+              <select class="form-select" id="pr-status">
+                <option value="예정">예정</option>
+                <option value="확정">확정</option>
+                <option value="완료">완료</option>
+                <option value="취소">취소</option>
+              </select>
+            </div>
+            <div class="form-field form-full">
+              <label>초록/개요</label>
+              <textarea class="form-textarea" id="pr-abstract" placeholder="발표 요약, 핵심 메시지"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn" onclick="history_back()">취소</button>
+            <button class="btn btn-primary" id="pr-submit">등록</button>
+          </div>
+        </div>
+      `;
+
+      // Setup autocomplete if applicable
+      if (!preselectedPerson) {
+        setupPersonAutocomplete();
+      }
+      document.getElementById('pr-submit').onclick = () => submitPresentation(preselectedPerson);
+      window.history_back = () => {
+        if (preselectedEvent) __nav('event', {event_id: preselectedEvent.id});
+        else if (preselectedPerson) __nav('person', {person_id: preselectedPerson.id});
+        else __nav('events');
+      };
+    }
+
+    function setupPersonAutocomplete() {
+      const input = document.getElementById('pr-person-search');
+      const hidden = document.getElementById('pr-person-id');
+      const list = document.getElementById('pr-person-list');
+      let debounceTimer;
+
+      input.addEventListener('input', () => {
+        hidden.value = '';
+        const q = input.value.trim();
+        clearTimeout(debounceTimer);
+        if (q.length < 1) { list.style.display = 'none'; return; }
+        debounceTimer = setTimeout(async () => {
+          try {
+            const res = await window.agentdb.executeQuery('search_people_for_picker', { q: q });
+            if (res.rows.length === 0) { list.style.display = 'none'; return; }
+            list.innerHTML = res.rows.map(r => `
+              <div class="autocomplete-item" data-id="${r.id}" data-name="${esc(r.name)}">
+                <div><b>${esc(r.name)}</b> ${r.position ? '· ' + esc(r.position) : ''}</div>
+                <div class="sub">${esc(r.organization || '')}</div>
+              </div>
+            `).join('');
+            list.style.display = 'block';
+            list.querySelectorAll('.autocomplete-item').forEach(item => {
+              item.onclick = () => {
+                hidden.value = item.dataset.id;
+                input.value = item.dataset.name;
+                list.style.display = 'none';
+              };
+            });
+          } catch (e) { console.error(e); }
+        }, 200);
+      });
+      document.addEventListener('click', (ev) => {
+        if (!ev.target.closest('.autocomplete-wrap')) list.style.display = 'none';
+      });
+    }
+
+    async function submitPresentation(preselectedPerson) {
+      const eventId = Number(document.getElementById('pr-event-id').value);
+      const title = document.getElementById('pr-title').value.trim();
+      if (!eventId) { toast('행사를 선택하세요', 'error'); return; }
+      if (!title) { toast('발표 제목을 입력하세요', 'error'); return; }
+
+      let personId = preselectedPerson ? preselectedPerson.id : Number(document.getElementById('pr-person-id').value || 0) || null;
+      let nameSnapshot = null;
+      if (!preselectedPerson) {
+        nameSnapshot = document.getElementById('pr-name-snapshot').value.trim() || null;
+        // If user typed in the search but didn't pick, keep the text as snapshot
+        if (!personId && !nameSnapshot) {
+          const typed = document.getElementById('pr-person-search').value.trim();
+          if (typed) nameSnapshot = typed;
+        }
+      }
+
+      const btn = document.getElementById('pr-submit');
+      btn.disabled = true; btn.textContent = '등록 중…';
+      try {
+        await window.agentdb.executeQuery('create_presentation', {
+          event_id: eventId,
+          person_id: personId,
+          presenter_name_snapshot: nameSnapshot,
+          title: title,
+          topic: document.getElementById('pr-topic').value.trim() || null,
+          session_type: document.getElementById('pr-session-type').value,
+          session_date: document.getElementById('pr-date').value || '',
+          session_time: document.getElementById('pr-time').value.trim() || null,
+          abstract: document.getElementById('pr-abstract').value.trim() || null,
+          status: document.getElementById('pr-status').value,
+        });
+        toast('발표가 등록되었습니다', 'success');
+        __nav('event', { event_id: eventId });
+      } catch (e) {
+        toast('등록 실패: ' + e.message, 'error');
+        btn.disabled = false; btn.textContent = '등록';
+      }
+    }
+
+    // ---------- Client-side table filter ----------
+    window.__filterTable = function(tableId, q) {
+      q = (q || '').toLowerCase().trim();
+      document.querySelectorAll(`table[data-search-table="${tableId}"] tbody tr`).forEach(tr => {
+        const t = tr.textContent.toLowerCase();
+        tr.style.display = (!q || t.includes(q)) ? '' : 'none';
+      });
+    };
+
+    // ---------- Boot ----------
+    console.log('[init] starting');
+    renderRoute();
+  </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
+</body>
+</html>
