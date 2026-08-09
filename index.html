@@ -1,11 +1,69 @@
 <!DOCTYPE html>
-<html data-palette="graphite" data-theme="light">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>푸드테크 센터 대시보드</title>
+  <title>서울대 푸드테크 센터 · 월드푸드테크협의회</title>
+
+  <!-- Supabase JS Client (loaded from CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+
   <style>
-    /* Extra styles on top of the injected B-Suite tokens */
+    /* ============================================================
+       B-Suite 대체 토큰 (원래 AgentDB가 주입하던 팔레트를 자체 정의)
+       ============================================================ */
+    :root {
+      --ink-025: rgba(0,0,0,.02);
+      --ink-050: #f5f6f8;
+      --ink-100: #e8ebee;
+      --ink-200: #d3d8de;
+      --ink-300: #b0b7c0;
+      --ink-500: #6e7c8f;
+      --ink-600: #556374;
+      --ink-700: #3d4a5c;
+      --ink-800: #2a3547;
+      --ink-900: #14202f;
+      --brand-500: #003057;
+      --brand-600: #00223f;
+      --brand-700: #001528;
+      --success-500: #10b981;
+      --success-700: #047857;
+      --warn-500: #d97706;
+      --warn-700: #a16207;
+      --danger-500: #ef4444;
+      --bg: #f8f9fb;
+      --bg-card: #ffffff;
+      --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --r-sm: 6px;
+      --r-md: 10px;
+      --s-xs: 4px;
+      --s-sm: 8px;
+      --s-md: 16px;
+      --s-lg: 24px;
+      --s-xl: 32px;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink-900);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+    }
+    .gs-wrap { max-width: 1240px; margin: 0 auto; padding: 24px; }
+    .gs-hero { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 20px; }
+    .gs-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--ink-050); border-radius: 999px; font-size: 11px; color: var(--ink-600); }
+    .gs-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success-500); }
+    .gs-grid { display: grid; }
+    .gs-empty { display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+    .t-h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+    .t-h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.005em; }
+    .t-h3 { font-size: 16px; font-weight: 600; }
+    .t-body { font-size: 14px; color: var(--ink-600); }
+    .t-small { font-size: 12px; }
+    .t-micro { font-size: 11px; color: var(--ink-500); letter-spacing: .04em; }
+
+    /* Extra styles on top of the base tokens */
     .clickable { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
     .clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
     .breadcrumb {
@@ -1053,6 +1111,190 @@
   <div id="toast" class="toast"></div>
 
   <script>
+    // ============================================================
+    // Supabase 클라이언트 초기화 + AgentDB Bridge 어댑터
+    //
+    // 원래 window.agentdb.executeQuery('name', params) 로 호출하던 것을
+    // Supabase RPC (Postgres 함수) 호출로 변환합니다.
+    // ============================================================
+    const SB_URL = window.__SUPABASE_URL__ || 'YOUR_SUPABASE_URL';
+    const SB_KEY = window.__SUPABASE_ANON_KEY__ || 'YOUR_SUPABASE_ANON_KEY';
+    const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+    // Bridge adapter: mimics window.agentdb.executeQuery()
+    window.agentdb = {
+      async executeQuery(name, params = {}) {
+        // Handle INSERT queries directly (create_event, create_presentation)
+        if (name === 'create_event') {
+          const { data, error } = await sb.from('events').insert([{
+            name: params.name, event_type: params.event_type, edition: params.edition,
+            start_date: params.start_date || null, end_date: params.end_date || null,
+            location: params.location, theme: params.theme,
+            status: params.status, description: params.description
+          }]).select('id, name');
+          if (error) throw new Error(error.message);
+          return { rows: data, row_count: data.length };
+        }
+        if (name === 'create_presentation') {
+          const { data, error } = await sb.from('event_presentations').insert([{
+            event_id: params.event_id, person_id: params.person_id,
+            presenter_name_snapshot: params.presenter_name_snapshot,
+            title: params.title, topic: params.topic, session_type: params.session_type,
+            session_date: params.session_date || null, session_time: params.session_time,
+            abstract: params.abstract, status: params.status
+          }]).select('id, title');
+          if (error) throw new Error(error.message);
+          return { rows: data, row_count: data.length };
+        }
+        // For all other named queries, call the Postgres function via RPC.
+        // Parameter names must match the function signature.
+        const { data, error } = await sb.rpc(name, params);
+        if (error) throw new Error(error.message);
+        const rows = Array.isArray(data) ? data : [data];
+        return { rows: rows, row_count: rows.length, columns: rows.length > 0 ? Object.keys(rows[0]) : [] };
+      }
+    };
+
+    // gsDash utility functions (formerly injected by AgentDB)
+    window.gsDash = {
+      fmtInt(n) {
+        if (n == null || isNaN(n)) return '0';
+        return Number(n).toLocaleString('ko-KR');
+      },
+      fmtMoney(n) {
+        if (n == null) return '';
+        return '₩' + Number(n).toLocaleString('ko-KR');
+      },
+      humanize(s) {
+        if (!s) return '';
+        return String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      },
+      relTime(d) {
+        if (!d) return '';
+        const dt = new Date(d);
+        const diff = (Date.now() - dt.getTime()) / 1000;
+        if (diff < 60) return '방금';
+        if (diff < 3600) return `${Math.floor(diff/60)}분 전`;
+        if (diff < 86400) return `${Math.floor(diff/3600)}시간 전`;
+        return `${Math.floor(diff/86400)}일 전`;
+      },
+      dateMD(d) {
+        if (!d) return '';
+        const dt = new Date(d);
+        return `${dt.getMonth()+1}/${dt.getDate()}`;
+      },
+      esc(s) {
+        if (s == null) return '';
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      },
+      vizColor(i) {
+        const palette = ['#003057', '#d4a017', '#5a7a9a', '#8ba3bd', '#c2ceda', '#4a5568'];
+        return palette[i % palette.length];
+      },
+      tag(text, tone) {
+        const cls = 'gs-tag gs-tag-' + (tone || 'neutral');
+        return `<span class="${cls}">${this.esc(text)}</span>`;
+      },
+      statusTone(label) {
+        if (['진행중','확정','완료','성공','active','success'].includes(label)) return 'success';
+        if (['취소','실패','danger','error'].includes(label)) return 'danger';
+        if (['준비중','대기','pending','warn'].includes(label)) return 'warn';
+        return 'neutral';
+      },
+      panels(cardArr, cols) {
+        const c = cols || cardArr.length;
+        return `<div style="display:grid; grid-template-columns: repeat(${c}, 1fr); gap:16px">${cardArr.join('')}</div>`;
+      },
+      barCard({title, sub, rows, xFmt}) {
+        if (!rows || rows.length === 0) {
+          return this._card(title, sub, '<div class="gs-empty">데이터 없음</div>');
+        }
+        const max = Math.max(1, ...rows.map(r => r.value));
+        const fmt = xFmt || (v => this.fmtInt(v));
+        const body = rows.map(r => {
+          const pct = Math.round(r.value / max * 100);
+          return `
+            <div style="margin-bottom:12px">
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:13px">
+                <span>${this.esc(r.label)}</span>
+                <span style="font-weight:600; font-variant-numeric:tabular-nums">${fmt(r.value)}</span>
+              </div>
+              <div style="height:6px; background:var(--ink-100); border-radius:3px; overflow:hidden">
+                <div style="height:100%; width:${pct}%; background:var(--brand-500); border-radius:3px"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        return this._card(title, sub, body);
+      },
+      donutCard({title, sub, rows, fmt}) {
+        if (!rows || rows.length === 0) {
+          return this._card(title, sub, '<div class="gs-empty">데이터 없음</div>');
+        }
+        const total = rows.reduce((s, r) => s + Number(r.value), 0) || 1;
+        const fmtFn = fmt || (v => this.fmtInt(v));
+        let offset = 0;
+        const cx = 60, cy = 60, r = 45, sw = 18;
+        const circ = 2 * Math.PI * r;
+        const segs = rows.map((row, i) => {
+          const len = row.value / total * circ;
+          const s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${this.vizColor(i)}" stroke-width="${sw}" stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+          offset += len;
+          return s;
+        }).join('');
+        const legend = rows.map((row, i) => `
+          <div style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px">
+            <div style="width:10px; height:10px; border-radius:2px; background:${this.vizColor(i)}"></div>
+            <div style="flex:1">${this.esc(row.label)}</div>
+            <div style="font-weight:600; font-variant-numeric:tabular-nums">${fmtFn(row.value)}</div>
+            <div style="color:var(--ink-500); font-size:11px">${Math.round(row.value/total*100)}%</div>
+          </div>
+        `).join('');
+        return this._card(title, sub, `
+          <div style="display:flex; gap:16px; align-items:center">
+            <svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0">${segs}</svg>
+            <div style="flex:1">${legend}</div>
+          </div>
+        `);
+      },
+      feedCard({title, sub, rows, empty}) {
+        if (!rows || rows.length === 0) {
+          return this._card(title, sub, `<div class="gs-empty" style="color:var(--ink-500)">${empty || '데이터 없음'}</div>`);
+        }
+        const body = rows.map(r => `
+          <div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--ink-050); font-size:13px">
+            <div style="width:28px; height:28px; border-radius:50%; background:var(--brand-500); color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex-shrink:0">${this.esc(r.initial || '?')}</div>
+            <div style="flex:1; min-width:0">
+              <div style="font-weight:500">${this.esc(r.main || '')}</div>
+              ${r.sub ? `<div style="font-size:11px; color:var(--ink-500); margin-top:2px">${this.esc(r.sub)}</div>` : ''}
+            </div>
+            ${r.meta ? `<div style="font-size:11px; color:var(--ink-500); display:flex; align-items:center; gap:6px">${r.meta}</div>` : ''}
+          </div>
+        `).join('');
+        return this._card(title, sub, body);
+      },
+      _card(title, sub, bodyHTML) {
+        return `
+          <div style="background:var(--bg-card); border-radius:var(--r-md); padding:18px 20px; box-shadow:var(--shadow-card)">
+            <div style="font-size:12px; font-weight:600; color:var(--ink-700); letter-spacing:.04em; margin-bottom:${sub ? '4px' : '14px'}">${this.esc(title || '')}</div>
+            ${sub ? `<div style="font-size:11px; color:var(--ink-500); margin-bottom:14px">${this.esc(sub)}</div>` : ''}
+            ${bodyHTML}
+          </div>
+        `;
+      },
+      kpiRow(items) {
+        return `<div class="gs-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px">${
+          items.map(it => `
+            <div style="padding:16px 18px; background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card)">
+              <div style="font-size:11px; color:var(--ink-500); margin-bottom:6px">${this.esc(it.label)}</div>
+              <div style="font-size:24px; font-weight:600; color:${it.accent==='good'?'var(--success-500)':it.accent==='alert'?'var(--warn-500)':'var(--ink-900)'}; font-variant-numeric:tabular-nums">${this.fmtInt(it.value)}</div>
+              ${it.sub ? `<div style="font-size:12px; color:var(--ink-500); margin-top:2px">${this.esc(it.sub)}</div>` : ''}
+            </div>
+          `).join('')
+        }</div>`;
+      }
+    };
+
     var g = window.gsDash;
 
     // ---------- Utility ----------
@@ -2536,6 +2778,5 @@
     console.log('[init] starting');
     renderRoute();
   </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
 </body>
 </html>
