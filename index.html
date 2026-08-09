@@ -14,27 +14,28 @@
        B-Suite 대체 토큰 (원래 AgentDB가 주입하던 팔레트를 자체 정의)
        ============================================================ */
     :root {
-      --ink-025: rgba(0,0,0,.02);
-      --ink-050: #f5f6f8;
-      --ink-100: #e8ebee;
-      --ink-200: #d3d8de;
-      --ink-300: #b0b7c0;
-      --ink-500: #6e7c8f;
-      --ink-600: #556374;
-      --ink-700: #3d4a5c;
-      --ink-800: #2a3547;
-      --ink-900: #14202f;
-      --brand-500: #003057;
-      --brand-600: #00223f;
-      --brand-700: #001528;
+      /* ── WFTC 색상 팔레트 (worldfoodtech.org 기준) ── */
+      --ink-025: rgba(0,92,185,.03);
+      --ink-050: #f0f5fc;
+      --ink-100: #deeaf8;
+      --ink-200: #b8d3f0;
+      --ink-300: #7aaee0;
+      --ink-500: #4a7ab5;
+      --ink-600: #2e5f99;
+      --ink-700: #1a4580;
+      --ink-800: #0d2f66;
+      --ink-900: #051c4a;
+      --brand-500: #005cb9;   /* WFTC 메인 블루 */
+      --brand-600: #0050a3;
+      --brand-700: #003d80;
       --success-500: #10b981;
       --success-700: #047857;
       --warn-500: #d97706;
       --warn-700: #a16207;
       --danger-500: #ef4444;
-      --bg: #f8f9fb;
+      --bg: #f5f8fd;           /* 연한 블루 틴트 배경 */
       --bg-card: #ffffff;
-      --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-card: 0 1px 4px rgba(0,92,185,.08), 0 1px 2px rgba(0,92,185,.04);
       --r-sm: 6px;
       --r-md: 10px;
       --s-xs: 4px;
@@ -329,14 +330,14 @@
       margin: 0 !important;
     }
     .snu-hero-page {
-      --snu-navy: #003057;      /* SNU primary blue */
-      --snu-navy-2: #06213c;
-      --snu-navy-3: #001d38;
-      --snu-gold: #d4a017;      /* SNU accent gold */
-      --snu-gold-soft: #f2c744;
-      --snu-cream: #faf7f0;
-      --snu-ink: #0b1c30;
-      --snu-ink-2: #3a4a5f;
+      --snu-navy: #005cb9;      /* SNU primary blue */
+      --snu-navy-2: #004494;
+      --snu-navy-3: #003d80;
+      --snu-gold: #0073e6;      /* SNU accent gold */
+      --snu-gold-soft: #4da6ff;
+      --snu-cream: #f0f5fc;
+      --snu-ink: #051c4a;
+      --snu-ink-2: #1a4580;
       --snu-ink-3: #6e7c8f;
       --snu-line: #e3e7ec;
       --snu-line-2: #cfd6df;
@@ -351,8 +352,8 @@
     /* ---- Hero ---- */
     .snu-hero {
       background:
-        radial-gradient(ellipse 80% 60% at 85% -20%, rgba(212,160,23,.14), transparent 60%),
-        radial-gradient(ellipse 60% 50% at 0% 100%, rgba(0,120,200,.10), transparent 60%),
+        radial-gradient(ellipse 80% 60% at 85% -20%, rgba(77,166,255,.18), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, rgba(0,80,163,.20), transparent 60%),
         linear-gradient(180deg, var(--snu-navy-3) 0%, var(--snu-navy) 100%);
       color: #fff;
       padding: 44px 40px 56px;
@@ -1188,7 +1189,7 @@
         return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       },
       vizColor(i) {
-        const palette = ['#003057', '#d4a017', '#5a7a9a', '#8ba3bd', '#c2ceda', '#4a5568'];
+        const palette = ['#005cb9', '#0073e6', '#5a7a9a', '#8ba3bd', '#c2ceda', '#4a5568'];
         return palette[i % palette.length];
       },
       tag(text, tone) {
@@ -1715,7 +1716,7 @@
     // Custom donut renderer using SVG — matches SNU palette
     function renderSnuDonut(elementId, rows) {
       const total = rows.reduce((s, r) => s + r.value, 0) || 1;
-      const colors = ['#003057', '#d4a017', '#5a7a9a', '#8ba3bd', '#c2ceda'];
+      const colors = ['#005cb9', '#0073e6', '#5a7a9a', '#8ba3bd', '#c2ceda'];
       const cx = 90, cy = 90, r = 70, strokeW = 26;
       const circ = 2 * Math.PI * r;
 
