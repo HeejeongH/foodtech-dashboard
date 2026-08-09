@@ -1534,23 +1534,65 @@
               </div>
             </section>
 
-            <!-- Section 2: Programs -->
+            <!-- Section 2: Programs (참여 채널 1 — 교육과정) -->
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
                   <h2 class="snu-section-title"><span class="num">02</span>Programs</h2>
-                  <p class="snu-section-sub">교육과정별 참여 현황</p>
+                  <p class="snu-section-sub">교육과정 참여도</p>
                 </div>
                 <span class="snu-section-link" data-nav="programs">전체 보기 →</span>
               </div>
               <div class="snu-program-grid" id="snu-program-grid"></div>
             </section>
 
-            <!-- Section 3: WFTC status donut + type breakdown -->
+            <!-- Section 3: Calendar (참여 채널 2 — 행사, 일정) -->
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">03</span>Distribution</h2>
+                  <h2 class="snu-section-title"><span class="num">03</span>Calendar</h2>
+                  <p class="snu-section-sub">행사 참여도 · 예정 일정</p>
+                </div>
+                <div style="display:flex; gap:12px; align-items:center">
+                  <button class="snu-btn snu-btn-primary" data-nav="event_new" style="padding:9px 16px; font-size:13px">+ 행사 등록</button>
+                  <span class="snu-section-link" data-nav="events">전체 행사 →</span>
+                </div>
+              </div>
+              <div id="snu-calendar"></div>
+            </section>
+
+            <!-- Section 4: Events + Top presenters (참여 채널 2 — 행사, 발표 활동) -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">04</span>Events</h2>
+                  <p class="snu-section-sub">행사 참여도 · 발표 활동</p>
+                </div>
+                <span class="snu-section-link" data-nav="events">전체 행사 →</span>
+              </div>
+              <div class="snu-events-layout" id="snu-events-layout"></div>
+            </section>
+
+            <!-- Section 5: Newsletter (참여 채널 3 — 뉴스레터, 외부 시스템 연동 준비 중) -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">05</span>Newsletter</h2>
+                  <p class="snu-section-sub">뉴스레터 참여도 · 연동 준비 중</p>
+                </div>
+                <a class="snu-section-link" href="https://admin.foodtech-center.org/admin/scores" target="_blank" rel="noopener">뉴스레터 관리자 열기 ↗</a>
+              </div>
+              <div class="empty-msg">
+                이 대시보드와 뉴스레터 발송 시스템(admin.foodtech-center.org)의 데이터 연동은 준비 중입니다.<br>
+                지금은 별도 관리자 페이지에서 회원 참여도(활발·관심·잠잠)를 확인할 수 있습니다.
+              </div>
+            </section>
+
+            <!-- Section 6: WFTC status donut + type breakdown (세 채널 종합 현황) -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">06</span>Distribution</h2>
                   <p class="snu-section-sub">가입 상태 · 행사 유형 분포</p>
                 </div>
               </div>
@@ -1566,50 +1608,8 @@
               </div>
             </section>
 
-            <!-- Section 4: Calendar (upcoming events window) -->
-            <section class="snu-section">
-              <div class="snu-section-head">
-                <div>
-                  <h2 class="snu-section-title"><span class="num">04</span>Calendar</h2>
-                  <p class="snu-section-sub">전후 3개월 행사 일정</p>
-                </div>
-                <div style="display:flex; gap:12px; align-items:center">
-                  <button class="snu-btn snu-btn-primary" data-nav="event_new" style="padding:9px 16px; font-size:13px">+ 행사 등록</button>
-                  <span class="snu-section-link" data-nav="events">전체 행사 →</span>
-                </div>
-              </div>
-              <div id="snu-calendar"></div>
-            </section>
-
-            <!-- Section 5: Events + Top presenters -->
-            <section class="snu-section">
-              <div class="snu-section-head">
-                <div>
-                  <h2 class="snu-section-title"><span class="num">05</span>Events</h2>
-                  <p class="snu-section-sub">행사 및 발표 활동</p>
-                </div>
-                <span class="snu-section-link" data-nav="events">전체 행사 →</span>
-              </div>
-              <div class="snu-events-layout" id="snu-events-layout"></div>
-            </section>
-
-            <!-- Section 6: Non-member CTA -->
+            <!-- Section 7: Low-engagement CTA (세 채널 종합 결과 → 저참여 회원 권유) -->
             <section class="snu-section" id="snu-cta-section"></section>
-
-            <!-- Section 7: Newsletter (external system, integration pending) -->
-            <section class="snu-section">
-              <div class="snu-section-head">
-                <div>
-                  <h2 class="snu-section-title"><span class="num">07</span>Newsletter</h2>
-                  <p class="snu-section-sub">WFTC 뉴스레터 참여도 · 연동 준비 중</p>
-                </div>
-                <a class="snu-section-link" href="https://admin.foodtech-center.org/admin/scores" target="_blank" rel="noopener">뉴스레터 관리자 열기 ↗</a>
-              </div>
-              <div class="empty-msg">
-                이 대시보드와 뉴스레터 발송 시스템(admin.foodtech-center.org)의 데이터 연동은 준비 중입니다.<br>
-                지금은 별도 관리자 페이지에서 회원 참여도(활발·관심·잠잠)를 확인할 수 있습니다.
-              </div>
-            </section>
 
           </div>
         </div>
@@ -1693,12 +1693,12 @@
         p.addEventListener('click', () => __nav('person', { person_id: Number(p.dataset.personId) }));
       });
 
-      // ============= Non-member CTA =============
+      // ============= Low-engagement CTA (3채널 종합 → 저참여 회원 권유) =============
       document.getElementById('snu-cta-section').innerHTML = `
         <div class="snu-cta" data-nav="non_members">
           <div class="snu-cta-text">
-            <h3>가입 권유 대상 <span class="highlight">${g.fmtInt(nonMemberCount)}명</span></h3>
-            <p>교육과정을 이수했지만 아직 협의회에 가입하지 않은 인재풀입니다. 이 인원을 협의회 회원으로 안내하는 것이 이번 시즌의 핵심 목표입니다.</p>
+            <h3>저참여 회원 <span class="highlight">${g.fmtInt(nonMemberCount)}명</span></h3>
+            <p>교육과정·행사·뉴스레터 중 어느 채널에서도 협의회 가입까지 이어지지 않은 인재풀입니다. 참여도가 낮은 회원부터 우선 안내하는 것이 이번 시즌의 핵심 목표입니다. (고참여 회원 혜택 리스트는 세 채널 점수가 통합된 뒤 추가 예정)</p>
           </div>
           <div class="snu-cta-action">명단 열기 →</div>
         </div>
