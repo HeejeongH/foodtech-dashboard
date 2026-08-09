@@ -868,6 +868,26 @@
     }
     .snu-modal-close:hover { opacity: 1; }
 
+    /* AI agent chat widget */
+    #ai-agent-fab {
+      position: fixed; right: 24px; bottom: 24px; z-index: 40;
+      width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--brand-500), var(--accent-purple));
+      color: #fff; font-size: 24px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+    }
+    #ai-agent-modal { max-width: 440px; display: flex; flex-direction: column; }
+    #ai-agent-log { max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .ai-msg { padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; max-width: 88%; white-space: pre-wrap; }
+    .ai-msg-user { align-self: flex-end; background: var(--brand-500); color: #fff; }
+    .ai-msg-bot { align-self: flex-start; background: var(--bg-card-light); }
+    .ai-msg-error { align-self: flex-start; background: rgba(239,68,68,.15); color: #fca5a5; }
+    .ai-proposal { border: 1px solid var(--ink-300); border-radius: 10px; padding: 12px; margin-bottom: 12px; font-size: 13px; }
+    .ai-proposal-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+    .ai-proposal-row .k { color: var(--ink-300); }
+    .ai-agent-row { display: flex; gap: 8px; }
+    .ai-agent-row .form-input { flex: 1; }
+    #ai-agent-file-label { display: flex; align-items: center; justify-content: center; width: 42px; cursor: pointer; }
+
     /* Newsletter popularity bars */
     .snu-hbar-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; font-size: 13px; }
     .snu-hbar-row .lbl { width: 100px; flex-shrink: 0; color: var(--snu-ink-3); }
@@ -1157,6 +1177,28 @@
   <div id="root" class="gs-wrap" style="display:none"></div>
   <div id="toast" class="toast"></div>
 
+  <!-- AI 관리자 챗봇 (베타) -->
+  <button id="ai-agent-fab" aria-label="AI 관리자 챗봇 열기">🤖</button>
+  <dialog class="snu-modal" id="ai-agent-modal">
+    <div class="snu-modal-head">
+      <h3>🤖 AI 관리자 (베타)</h3>
+      <button class="snu-modal-close" id="ai-agent-close" aria-label="닫기">✕</button>
+    </div>
+    <p class="t-body" style="margin:0 0 12px; font-size:12px">
+      자연어로 회원 정보 수정을 요청하거나, 합격서·지원서 파일을 올리면 AI가 대상을 찾아 변경안을 제안합니다.
+      실제 DB에는 <b>확인 버튼을 눌러야</b> 반영됩니다.
+    </p>
+    <div id="ai-agent-log"></div>
+    <div id="ai-agent-proposal"></div>
+    <div class="ai-agent-row">
+      <input type="text" id="ai-agent-input" class="form-input" placeholder="예: 강성규 협의회 가입완료로 바꿔줘">
+      <label id="ai-agent-file-label" class="btn" title="파일 첨부 (PDF/이미지)">
+        📎<input type="file" id="ai-agent-file" accept=".pdf,image/*" style="display:none">
+      </label>
+      <button class="btn btn-primary" id="ai-agent-send">전송</button>
+    </div>
+  </dialog>
+
   <script>
     // ============================================================
     // Supabase 클라이언트 초기화 + AgentDB Bridge 어댑터
@@ -1190,6 +1232,23 @@
             session_date: params.session_date || null, session_time: params.session_time,
             abstract: params.abstract, status: params.status
           }]).select('id, title');
+          if (error) throw new Error(error.message);
+          return { rows: data, row_count: data.length };
+        }
+        if (name === 'update_person') {
+          const { data, error } = await sb.from('people').update({
+            position: params.position, department: params.department,
+            email: params.email, phone: params.phone, expertise: params.expertise,
+          }).eq('id', params.person_id).select('id');
+          if (error) throw new Error(error.message);
+          return { rows: data, row_count: data.length };
+        }
+        if (name === 'update_wftc_membership') {
+          const { data, error } = await sb.from('wftc_memberships').upsert({
+            person_id: params.person_id, membership_status: params.membership_status,
+            membership_tier: params.membership_tier, member_type: params.member_type,
+            join_date: params.join_date || null,
+          }, { onConflict: 'person_id' }).select('id');
           if (error) throw new Error(error.message);
           return { rows: data, row_count: data.length };
         }
@@ -2368,7 +2427,7 @@
     }
 
     // ---------- View: Person Detail ----------
-    async function renderPersonDetail(personId) {
+    async function renderPersonDetail(personId, editMode) {
       const [detailRes, enrollRes, presentationRes] = await Promise.all([
         window.agentdb.executeQuery('person_detail', { person_id: personId }),
         window.agentdb.executeQuery('person_enrollments', { person_id: personId }),
@@ -2376,6 +2435,9 @@
       ]);
       const p = detailRes.rows[0];
       if (!p) throw new Error('사람 정보를 찾을 수 없습니다');
+
+      const statusOptions = ['미가입', '가입 권유 중', '가입 신청', '가입 완료', '탈퇴'];
+      const memberTypeOptions = ['기존 멤버', '신규 가입(서울대 과정 출신)', '초청 멤버', '기타'];
 
       document.getElementById('root').innerHTML = `
         ${breadcrumb([{label:'대시보드', view:'dashboard'}, {label:'전체 인원', view:'people'}, {label: p.name}])}
@@ -2387,20 +2449,80 @@
               ${(p.person_types || []).map(t => `<span class="status-pill status-none" style="margin-left:6px">${esc(t)}</span>`).join('')}
             </p>
           </div>
-          <button class="btn" onclick='__nav("presentation_new", {person_id: ${personId}})'>+ 발표 추가</button>
+          <div style="display:flex; gap:8px">
+            ${editMode ? '' : `<button class="btn" id="pd-edit-btn">정보 수정</button>`}
+            <button class="btn" onclick='__nav("presentation_new", {person_id: ${personId}})'>+ 발표 추가</button>
+          </div>
         </div>
 
-        <div class="detail-grid">
-          ${field('소속', p.organization)}
-          ${field('직위', p.position)}
-          ${field('부서/학과', p.department)}
-          ${field('이메일', p.email)}
-          ${field('전화', p.phone)}
-          ${field('전문 분야', p.expertise)}
-          ${field('협의회 등급', p.membership_tier)}
-          ${field('회원 유형', p.member_type)}
-          ${field('가입일', p.join_date)}
-        </div>
+        ${editMode ? `
+          <div class="form-container" style="margin-bottom:24px">
+            <div class="form-grid">
+              <div class="form-field">
+                <label>소속</label>
+                <div class="detail-field" style="padding:8px 12px"><div class="value">${esc(p.organization || '—')}</div></div>
+                <div class="form-hint">소속 변경은 아직 여기서 지원하지 않습니다.</div>
+              </div>
+              <div class="form-field">
+                <label>직위</label>
+                <input type="text" class="form-input" id="pd-position" value="${esc(p.position || '')}">
+              </div>
+              <div class="form-field">
+                <label>부서/학과</label>
+                <input type="text" class="form-input" id="pd-department" value="${esc(p.department || '')}">
+              </div>
+              <div class="form-field">
+                <label>이메일</label>
+                <input type="email" class="form-input" id="pd-email" value="${esc(p.email || '')}">
+              </div>
+              <div class="form-field">
+                <label>전화</label>
+                <input type="text" class="form-input" id="pd-phone" value="${esc(p.phone || '')}">
+              </div>
+              <div class="form-field">
+                <label>전문 분야</label>
+                <input type="text" class="form-input" id="pd-expertise" value="${esc(p.expertise || '')}">
+              </div>
+              <div class="form-field">
+                <label>협의회 가입 상태 <span style="color:var(--danger-500)">*</span></label>
+                <select class="form-select" id="pd-wftc-status">
+                  ${statusOptions.map(s => `<option value="${esc(s)}" ${p.wftc_status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-field">
+                <label>협의회 등급</label>
+                <input type="text" class="form-input" id="pd-tier" value="${esc(p.membership_tier || '')}" placeholder="예: 임원(이사)">
+              </div>
+              <div class="form-field">
+                <label>회원 유형</label>
+                <select class="form-select" id="pd-member-type">
+                  <option value="">—</option>
+                  ${memberTypeOptions.map(s => `<option value="${esc(s)}" ${p.member_type === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-field">
+                <label>가입일</label>
+                <input type="date" class="form-input" id="pd-join-date" value="${p.join_date || ''}">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn" id="pd-cancel-btn">취소</button>
+              <button class="btn btn-primary" id="pd-save-btn">저장</button>
+            </div>
+          </div>
+        ` : `
+          <div class="detail-grid">
+            ${field('소속', p.organization)}
+            ${field('직위', p.position)}
+            ${field('부서/학과', p.department)}
+            ${field('이메일', p.email)}
+            ${field('전화', p.phone)}
+            ${field('전문 분야', p.expertise)}
+            ${field('협의회 등급', p.membership_tier)}
+            ${field('회원 유형', p.member_type)}
+            ${field('가입일', p.join_date)}
+          </div>
+        `}
 
         <h2 class="t-h2" style="margin:24px 0 12px">교육과정 참여 이력</h2>
         ${enrollRes.rows.length === 0 ? `
@@ -2470,6 +2592,40 @@
           </div>
         ` : ''}
       `;
+
+      if (editMode) {
+        document.getElementById('pd-cancel-btn').onclick = () => renderPersonDetail(personId, false);
+        document.getElementById('pd-save-btn').onclick = () => savePersonEdits(personId);
+      } else {
+        document.getElementById('pd-edit-btn').onclick = () => renderPersonDetail(personId, true);
+      }
+    }
+
+    async function savePersonEdits(personId) {
+      const btn = document.getElementById('pd-save-btn');
+      btn.disabled = true; btn.textContent = '저장 중…';
+      try {
+        await window.agentdb.executeQuery('update_person', {
+          person_id: personId,
+          position: document.getElementById('pd-position').value.trim() || null,
+          department: document.getElementById('pd-department').value.trim() || null,
+          email: document.getElementById('pd-email').value.trim() || null,
+          phone: document.getElementById('pd-phone').value.trim() || null,
+          expertise: document.getElementById('pd-expertise').value.trim() || null,
+        });
+        await window.agentdb.executeQuery('update_wftc_membership', {
+          person_id: personId,
+          membership_status: document.getElementById('pd-wftc-status').value,
+          membership_tier: document.getElementById('pd-tier').value.trim() || null,
+          member_type: document.getElementById('pd-member-type').value || null,
+          join_date: document.getElementById('pd-join-date').value || null,
+        });
+        toast('저장되었습니다', 'success');
+        renderPersonDetail(personId, false);
+      } catch (e) {
+        toast('저장 실패: ' + e.message, 'error');
+        btn.disabled = false; btn.textContent = '저장';
+      }
     }
 
     function field(label, value) {
@@ -2930,8 +3086,126 @@
       });
     };
 
+    // ---------- AI 관리자 챗봇 (베타) ----------
+    const AI_FIELD_LABELS = {
+      position: '직위', department: '부서/학과', email: '이메일', phone: '전화', expertise: '전문 분야',
+      wftc_status: '협의회 가입 상태', membership_tier: '협의회 등급', member_type: '회원 유형', join_date: '가입일',
+    };
+
+    function appendAiMsg(text, cls) {
+      const log = document.getElementById('ai-agent-log');
+      const div = document.createElement('div');
+      div.className = 'ai-msg ' + cls;
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderAiProposal(proposal) {
+      const updates = proposal.updates || {};
+      const rows = Object.entries(updates).map(([k, v]) => `
+        <div class="ai-proposal-row"><span class="k">${esc(AI_FIELD_LABELS[k] || k)}</span><span>${esc(String(v))}</span></div>
+      `).join('');
+      const box = document.getElementById('ai-agent-proposal');
+      box.innerHTML = `
+        <div class="ai-proposal">
+          <div style="font-weight:600; margin-bottom:6px">${esc(proposal.person_name || '')} 수정 제안</div>
+          ${proposal.summary ? `<div class="t-body" style="font-size:12px; margin-bottom:8px">${esc(proposal.summary)}</div>` : ''}
+          ${rows || '<div class="t-body" style="font-size:12px">변경할 필드가 없습니다.</div>'}
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn" id="ai-agent-cancel">취소</button>
+            <button class="btn btn-primary" id="ai-agent-apply">적용</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('ai-agent-cancel').onclick = () => { box.innerHTML = ''; };
+      document.getElementById('ai-agent-apply').onclick = () => applyAiProposal(proposal);
+    }
+
+    async function applyAiProposal(proposal) {
+      const updates = proposal.updates || {};
+      const personFields = ['position', 'department', 'email', 'phone', 'expertise'];
+      const wftcFields = ['wftc_status', 'membership_tier', 'member_type', 'join_date'];
+      const applyBtn = document.getElementById('ai-agent-apply');
+      if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = '적용 중…'; }
+      try {
+        if (personFields.some(k => k in updates)) {
+          await window.agentdb.executeQuery('update_person', { person_id: proposal.person_id, ...updates });
+        }
+        if (wftcFields.some(k => k in updates)) {
+          await window.agentdb.executeQuery('update_wftc_membership', {
+            person_id: proposal.person_id,
+            membership_status: updates.wftc_status,
+            membership_tier: updates.membership_tier,
+            member_type: updates.member_type,
+            join_date: updates.join_date,
+          });
+        }
+        toast(`${proposal.person_name} 정보가 반영되었습니다`, 'success');
+        document.getElementById('ai-agent-proposal').innerHTML = '';
+        if (route.view === 'person' && Number(route.params.person_id) === Number(proposal.person_id)) {
+          renderPersonDetail(proposal.person_id, false);
+        }
+      } catch (e) {
+        toast('적용 실패: ' + e.message, 'error');
+        if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = '적용'; }
+      }
+    }
+
+    async function sendAiMessage() {
+      const input = document.getElementById('ai-agent-input');
+      const fileInput = document.getElementById('ai-agent-file');
+      const message = input.value.trim();
+      const file = fileInput.files[0];
+      if (!message && !file) return;
+
+      appendAiMsg(message || `📎 ${file.name}`, 'ai-msg-user');
+      input.value = '';
+      document.getElementById('ai-agent-proposal').innerHTML = '';
+      const sendBtn = document.getElementById('ai-agent-send');
+      sendBtn.disabled = true;
+      try {
+        const body = { message };
+        if (file) {
+          body.fileBase64 = await fileToBase64(file);
+          body.mediaType = file.type || 'application/pdf';
+        }
+        fileInput.value = '';
+        const res = await fetch('/api/agent', {
+          method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.error) appendAiMsg('오류: ' + data.error, 'ai-msg-error');
+        else if (data.proposal) { appendAiMsg(data.proposal.summary || '변경안을 제안합니다.', 'ai-msg-bot'); renderAiProposal(data.proposal); }
+        else appendAiMsg(data.message || '(응답 없음)', 'ai-msg-bot');
+      } catch (e) {
+        appendAiMsg('오류: ' + e.message, 'ai-msg-error');
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    function initAiAgent() {
+      const modal = document.getElementById('ai-agent-modal');
+      document.getElementById('ai-agent-fab').addEventListener('click', () => modal.showModal());
+      document.getElementById('ai-agent-close').addEventListener('click', () => modal.close());
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.close(); });
+      document.getElementById('ai-agent-send').addEventListener('click', sendAiMessage);
+      document.getElementById('ai-agent-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendAiMessage(); });
+    }
+
     // ---------- Boot ----------
     console.log('[init] starting');
+    initAiAgent();
     renderRoute();
   </script>
 </body>
