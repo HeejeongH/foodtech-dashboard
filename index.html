@@ -1470,18 +1470,17 @@
           <!-- HERO -->
           <section class="snu-hero">
             <div class="snu-hero-inner">
-              <div class="snu-eyebrow">서울대학교 푸드테크 센터 · 월드푸드테크협의회</div>
+              <div class="snu-eyebrow">SNU FoodTech · WFTC</div>
               <h1 class="snu-headline">
-                교육과정을 이수한 <span class="accent">${g.fmtInt(stages[0].value)}명</span>이
-                <br>월드푸드테크협의회의 다음 세대가 됩니다.
+                <span class="accent">${g.fmtInt(stages[0].value)}명</span>의 수료생,
+                <br>WFTC 다음 세대.
               </h1>
               <p class="snu-lead">
-                최고책임자·기술사업화·계약학과 3개 과정을 거친 인재풀 안에서
-                협의회 가입 파이프라인을 추적하고, 미가입 수료생에게 가입을 안내합니다.
+                3개 교육과정 수료생의 협의회 가입 현황을 한눈에 관리합니다.
               </p>
 
               <div class="snu-pipeline">
-                <div class="snu-pipeline-title">협의회 가입 파이프라인</div>
+                <div class="snu-pipeline-title">가입 파이프라인</div>
                 <div class="snu-pipeline-row">
                   ${stages.map((s, i) => `
                     <div class="snu-stage ${i === stages.length - 1 ? 'final' : ''}">
@@ -1495,10 +1494,10 @@
 
               <div class="snu-hero-ctas">
                 <button class="snu-btn snu-btn-primary snu-btn-arrow" data-nav="non_members">
-                  가입 권유 대상 ${g.fmtInt(nonMemberCount)}명 보기
+                  미가입 대상 ${g.fmtInt(nonMemberCount)}명
                 </button>
                 <button class="snu-btn snu-btn-ghost" data-nav="wftc" data-status="가입 완료">
-                  가입 완료 회원 살펴보기
+                  가입 회원 보기
                 </button>
               </div>
             </div>
@@ -1511,30 +1510,30 @@
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">01</span>규모</h2>
-                  <p class="snu-section-sub">지금 이 시스템이 관리하는 사람과 활동의 총량</p>
+                  <h2 class="snu-section-title"><span class="num">01</span>Overview</h2>
+                  <p class="snu-section-sub">관리 인원 및 활동 현황</p>
                 </div>
               </div>
               <div class="snu-stat-grid">
                 <div class="snu-stat" data-nav="people">
-                  <div class="snu-stat-label">전체 관리 인원</div>
+                  <div class="snu-stat-label">전체 인원</div>
                   <div class="snu-stat-value">${g.fmtInt(totalPeople)}</div>
-                  <div class="snu-stat-sub">기업 임원·학생·교수·강사·협의회 회원</div>
+                  <div class="snu-stat-sub">임원·학생·교수·강사·회원</div>
                 </div>
                 <div class="snu-stat" data-nav="wftc" data-status="가입 완료">
-                  <div class="snu-stat-label">협의회 가입 완료</div>
-                  <div class="snu-stat-value">${g.fmtInt(joined)}<span style="font-size:14px; color:var(--snu-ink-3); font-weight:400; margin-left:6px">· ${conversionPct}%</span></div>
+                  <div class="snu-stat-label">WFTC 회원</div>
+                  <div class="snu-stat-value">${g.fmtInt(joined)}<span style="font-size:14px; color:var(--snu-ink-3); font-weight:400; margin-left:6px">${conversionPct}%</span></div>
                   <div class="snu-stat-sub">전체 대비 가입률</div>
                 </div>
                 <div class="snu-stat" data-nav="programs">
-                  <div class="snu-stat-label">교육과정 참여</div>
+                  <div class="snu-stat-label">수강 이력</div>
                   <div class="snu-stat-value">${g.fmtInt(k.total_enrollments)}</div>
-                  <div class="snu-stat-sub">누적 수강 이력 건수</div>
+                  <div class="snu-stat-sub">누적 건수</div>
                 </div>
                 <div class="snu-stat" data-nav="events">
                   <div class="snu-stat-label">행사 · 발표</div>
-                  <div class="snu-stat-value">${g.fmtInt(ek.total_events)}<span style="font-size:14px; color:var(--snu-ink-3); font-weight:400; margin-left:6px">· ${g.fmtInt(ek.total_presentations)}건</span></div>
-                  <div class="snu-stat-sub">행사 개수 · 발표 세션 수</div>
+                  <div class="snu-stat-value">${g.fmtInt(ek.total_events)}<span style="font-size:14px; color:var(--snu-ink-3); font-weight:400; margin-left:6px">${g.fmtInt(ek.total_presentations)}건</span></div>
+                  <div class="snu-stat-sub">행사 · 발표 세션</div>
                 </div>
               </div>
             </section>
@@ -1543,8 +1542,8 @@
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">02</span>교육과정</h2>
-                  <p class="snu-section-sub">3개 교육과정의 참여 현황 · 카드 클릭 시 기수별 명단으로 이동</p>
+                  <h2 class="snu-section-title"><span class="num">02</span>Programs</h2>
+                  <p class="snu-section-sub">교육과정별 참여 현황</p>
                 </div>
                 <span class="snu-section-link" data-nav="programs">전체 보기 →</span>
               </div>
@@ -1555,17 +1554,17 @@
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">03</span>구성</h2>
-                  <p class="snu-section-sub">협의회 가입 상태와 행사 유형 분포</p>
+                  <h2 class="snu-section-title"><span class="num">03</span>Distribution</h2>
+                  <p class="snu-section-sub">가입 상태 · 행사 유형 분포</p>
                 </div>
               </div>
               <div class="snu-detail-row">
                 <div class="snu-panel">
-                  <div class="snu-panel-title">협의회 가입 상태</div>
+                  <div class="snu-panel-title">WFTC 가입 현황</div>
                   <div id="snu-wftc-donut"></div>
                 </div>
                 <div class="snu-panel">
-                  <div class="snu-panel-title">행사 유형별 개최 수</div>
+                  <div class="snu-panel-title">행사 유형</div>
                   <div id="snu-event-types"></div>
                 </div>
               </div>
@@ -1575,8 +1574,8 @@
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">04</span>행사 캘린더</h2>
-                  <p class="snu-section-sub">오늘 기준 앞뒤 3개월 · 카드를 클릭하면 요약, 다시 클릭하면 상세 페이지로</p>
+                  <h2 class="snu-section-title"><span class="num">04</span>Calendar</h2>
+                  <p class="snu-section-sub">전후 3개월 행사 일정</p>
                 </div>
                 <div style="display:flex; gap:12px; align-items:center">
                   <button class="snu-btn snu-btn-primary" data-nav="event_new" style="padding:9px 16px; font-size:13px">+ 행사 등록</button>
@@ -1590,8 +1589,8 @@
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">05</span>행사 · 발표 활동</h2>
-                  <p class="snu-section-sub">최근 25개 행사 · 896건의 발표가 진행되었습니다</p>
+                  <h2 class="snu-section-title"><span class="num">05</span>Events</h2>
+                  <p class="snu-section-sub">행사 및 발표 활동</p>
                 </div>
                 <span class="snu-section-link" data-nav="events">전체 행사 →</span>
               </div>
@@ -1621,7 +1620,7 @@
             <div class="snu-program-stat"><div class="n">${g.fmtInt(p.lecturers)}</div><div class="l">강사</div></div>
             <div class="snu-program-stat"><div class="n">${g.fmtInt(p.cohort_count)}</div><div class="l">기수</div></div>
           </div>
-          <div class="snu-program-arrow">자세히 보기 →</div>
+          <div class="snu-program-arrow">View →</div>
         </div>
       `).join('');
       progGrid.querySelectorAll('.snu-program').forEach(card => {
@@ -1661,7 +1660,7 @@
              <p style="color:rgba(255,255,255,.6); font-size:13px; margin:0">발표 등록 후 표시됩니다</p>
            </div>`
         : `<div class="snu-top-presenters">
-             <p class="snu-top-title">발표 TOP 10</p>
+             <p class="snu-top-title">Top Presenters</p>
              ${topPresRes.rows.map((r, i) => `
                <div class="snu-presenter" data-person-id="${r.person_id}">
                  <div class="rank">${String(i+1).padStart(2, '0')}</div>
