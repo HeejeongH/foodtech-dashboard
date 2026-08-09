@@ -846,6 +846,31 @@
     .snu-donut-legend .n { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--snu-ink); }
     .snu-donut-legend .p { color: var(--snu-ink-3); margin-left: 8px; font-size: 12px; }
 
+    /* Calendar popup */
+    dialog.snu-modal {
+      background: var(--bg-card);
+      color: inherit;
+      border: none;
+      border-radius: var(--r-md, 10px);
+      padding: 24px;
+      max-width: 760px;
+      width: 92vw;
+      max-height: 85vh;
+      overflow: auto;
+      box-shadow: var(--shadow-card);
+    }
+    dialog.snu-modal::backdrop { background: rgba(0,0,0,.6); }
+    .snu-modal-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .snu-modal-head h3 { margin: 0; font-size: 18px; font-weight: 700; }
+    .snu-modal-close {
+      background: none; border: none; color: inherit;
+      font-size: 20px; line-height: 1; cursor: pointer; opacity: .6; padding: 4px;
+    }
+    .snu-modal-close:hover { opacity: 1; }
+
     @media (prefers-reduced-motion: no-preference) {
       .snu-hero-inner > * { animation: snu-fade-in .5s ease both; }
       .snu-hero .snu-eyebrow { animation-delay: .04s; }
@@ -1502,7 +1527,21 @@
           <!-- CONTENT -->
           <div class="snu-content">
 
-            <!-- Section 1: Reach / totals -->
+            <!-- Distribution snapshot (참고용 요약 도형, 맨 위 배치) -->
+            <section class="snu-section">
+              <div class="snu-detail-row">
+                <div class="snu-panel">
+                  <div class="snu-panel-title">WFTC 가입 현황</div>
+                  <div id="snu-wftc-donut"></div>
+                </div>
+                <div class="snu-panel">
+                  <div class="snu-panel-title">행사 유형</div>
+                  <div id="snu-event-types"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 1: Overview -->
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
@@ -1534,51 +1573,40 @@
               </div>
             </section>
 
-            <!-- Section 2: Programs (참여 채널 1 — 교육과정) -->
+            <!-- Section 2: Events (참여 채널 1 — 행사, 캘린더는 팝업으로) -->
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">02</span>Programs</h2>
-                  <p class="snu-section-sub">교육과정 참여도</p>
+                  <h2 class="snu-section-title"><span class="num">02</span>Events</h2>
+                  <p class="snu-section-sub">행사 참여 현황</p>
+                </div>
+                <div style="display:flex; gap:12px; align-items:center">
+                  <button class="snu-btn snu-btn-ghost" data-cal-open style="padding:9px 16px; font-size:13px">📅 캘린더 보기</button>
+                  <button class="snu-btn snu-btn-primary" data-nav="event_new" style="padding:9px 16px; font-size:13px">+ 행사 등록</button>
+                  <span class="snu-section-link" data-nav="events">전체 행사 →</span>
+                </div>
+              </div>
+              <div class="snu-events-layout" id="snu-events-layout"></div>
+            </section>
+
+            <!-- Section 3: Programs (참여 채널 2 — 교육과정) -->
+            <section class="snu-section">
+              <div class="snu-section-head">
+                <div>
+                  <h2 class="snu-section-title"><span class="num">03</span>Programs</h2>
+                  <p class="snu-section-sub">교육과정 참여 현황</p>
                 </div>
                 <span class="snu-section-link" data-nav="programs">전체 보기 →</span>
               </div>
               <div class="snu-program-grid" id="snu-program-grid"></div>
             </section>
 
-            <!-- Section 3: Calendar (참여 채널 2 — 행사, 일정) -->
+            <!-- Section 4: Newsletter (참여 채널 3 — 뉴스레터, 외부 시스템 연동 준비 중) -->
             <section class="snu-section">
               <div class="snu-section-head">
                 <div>
-                  <h2 class="snu-section-title"><span class="num">03</span>Calendar</h2>
-                  <p class="snu-section-sub">행사 참여도 · 예정 일정</p>
-                </div>
-                <div style="display:flex; gap:12px; align-items:center">
-                  <button class="snu-btn snu-btn-primary" data-nav="event_new" style="padding:9px 16px; font-size:13px">+ 행사 등록</button>
-                  <span class="snu-section-link" data-nav="events">전체 행사 →</span>
-                </div>
-              </div>
-              <div id="snu-calendar"></div>
-            </section>
-
-            <!-- Section 4: Events + Top presenters (참여 채널 2 — 행사, 발표 활동) -->
-            <section class="snu-section">
-              <div class="snu-section-head">
-                <div>
-                  <h2 class="snu-section-title"><span class="num">04</span>Events</h2>
-                  <p class="snu-section-sub">행사 참여도 · 발표 활동</p>
-                </div>
-                <span class="snu-section-link" data-nav="events">전체 행사 →</span>
-              </div>
-              <div class="snu-events-layout" id="snu-events-layout"></div>
-            </section>
-
-            <!-- Section 5: Newsletter (참여 채널 3 — 뉴스레터, 외부 시스템 연동 준비 중) -->
-            <section class="snu-section">
-              <div class="snu-section-head">
-                <div>
-                  <h2 class="snu-section-title"><span class="num">05</span>Newsletter</h2>
-                  <p class="snu-section-sub">뉴스레터 참여도 · 연동 준비 중</p>
+                  <h2 class="snu-section-title"><span class="num">04</span>Newsletter</h2>
+                  <p class="snu-section-sub">뉴스레터 참여 현황 · 연동 준비 중</p>
                 </div>
                 <a class="snu-section-link" href="https://admin.foodtech-center.org/admin/scores" target="_blank" rel="noopener">뉴스레터 관리자 열기 ↗</a>
               </div>
@@ -1588,31 +1616,20 @@
               </div>
             </section>
 
-            <!-- Section 6: WFTC status donut + type breakdown (세 채널 종합 현황) -->
-            <section class="snu-section">
-              <div class="snu-section-head">
-                <div>
-                  <h2 class="snu-section-title"><span class="num">06</span>Distribution</h2>
-                  <p class="snu-section-sub">가입 상태 · 행사 유형 분포</p>
-                </div>
-              </div>
-              <div class="snu-detail-row">
-                <div class="snu-panel">
-                  <div class="snu-panel-title">WFTC 가입 현황</div>
-                  <div id="snu-wftc-donut"></div>
-                </div>
-                <div class="snu-panel">
-                  <div class="snu-panel-title">행사 유형</div>
-                  <div id="snu-event-types"></div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Section 7: Low-engagement CTA (세 채널 종합 결과 → 저참여 회원 권유) -->
+            <!-- Section 5: Low-engagement CTA (세 채널 종합 결과 → 저참여 회원 권유) -->
             <section class="snu-section" id="snu-cta-section"></section>
 
           </div>
         </div>
+
+        <!-- Calendar popup (Section 2 요약 보기) -->
+        <dialog class="snu-modal" id="snu-calendar-modal">
+          <div class="snu-modal-head">
+            <h3>행사 캘린더</h3>
+            <button class="snu-modal-close" data-cal-close aria-label="닫기">✕</button>
+          </div>
+          <div id="snu-calendar"></div>
+        </dialog>
       `;
 
       // ============= Program cards =============
@@ -1703,6 +1720,12 @@
           <div class="snu-cta-action">명단 열기 →</div>
         </div>
       `;
+
+      // ============= Calendar popup =============
+      const calModal = document.getElementById('snu-calendar-modal');
+      root.querySelectorAll('[data-cal-open]').forEach(btn => btn.addEventListener('click', () => calModal.showModal()));
+      root.querySelectorAll('[data-cal-close]').forEach(btn => btn.addEventListener('click', () => calModal.close()));
+      calModal.addEventListener('click', (e) => { if (e.target === calModal) calModal.close(); });
 
       // Wire up all elements with data-nav
       root.querySelectorAll('[data-nav]').forEach(el => {
