@@ -1637,7 +1637,10 @@
                   <h2 class="snu-section-title"><span class="num">04</span>Newsletter</h2>
                   <p class="snu-section-sub">뉴스레터 참여 현황 · 2026-08-10 기준 스냅샷 (실시간 연동 전)</p>
                 </div>
-                <a class="snu-section-link" href="https://admin.foodtech-center.org/admin/scores" target="_blank" rel="noopener">뉴스레터 관리자 열기 ↗</a>
+                <div style="display:flex; gap:12px; align-items:center">
+                  <button class="snu-btn snu-btn-ghost" data-review-open style="padding:9px 16px; font-size:13px">📨 발송 검토 보기</button>
+                  <a class="snu-section-link" href="https://admin.foodtech-center.org/admin/scores" target="_blank" rel="noopener">뉴스레터 관리자 열기 ↗</a>
+                </div>
               </div>
               <p class="t-body" style="margin:0 0 16px">admin.foodtech-center.org는 로그인 보호 중이라 이 대시보드에는 최근 확인한 값을 수동으로 옮겨뒀습니다. 실시간 API 연동은 준비 중입니다.</p>
 
@@ -1698,6 +1701,31 @@
             <button class="snu-modal-close" data-cal-close aria-label="닫기">✕</button>
           </div>
           <div id="snu-calendar"></div>
+        </dialog>
+
+        <!-- 발송 검토 popup (Section 4 요약 보기) -->
+        <dialog class="snu-modal" id="snu-review-modal">
+          <div class="snu-modal-head">
+            <h3>발송 검토</h3>
+            <button class="snu-modal-close" data-review-close aria-label="닫기">✕</button>
+          </div>
+          <p class="t-body" style="margin:0 0 16px; font-size:12px">2026-08-10 기준 스냅샷 · 값 수정은 admin.foodtech-center.org/admin/review에서만 가능합니다</p>
+
+          <div class="snu-panel-title">발송 구성</div>
+          <div class="snu-stat-grid" style="margin-bottom:12px">
+            <div class="snu-stat"><div class="snu-stat-label">에피타이저</div><div class="snu-stat-value">2</div></div>
+            <div class="snu-stat"><div class="snu-stat-label">메인</div><div class="snu-stat-value">3</div></div>
+            <div class="snu-stat"><div class="snu-stat-label">국내</div><div class="snu-stat-value">4</div></div>
+            <div class="snu-stat"><div class="snu-stat-label">해외</div><div class="snu-stat-value">1</div></div>
+          </div>
+          <p class="t-body" style="margin:0 0 24px; font-size:12px">최근 일수 7 · 에피타이저+메인(5)과 국내+해외(5)의 합이 같아야 저장됩니다. 저장해도 이미 조립된 오늘 편에는 반영되지 않습니다 — 다시 조립해야 합니다.</p>
+
+          <div class="snu-panel-title">오늘의 파일럿 편 (pilot-daily)</div>
+          <div class="empty-msg" style="text-align:left; padding:16px 20px">
+            <strong>푸디픽 #018</strong> | 오늘의 푸드테크 5선 — [경제인칼럼] 동네상권 위기의 외식업<br>
+            <span class="status-pill status-joined" style="margin-top:8px; display:inline-block">발송 완료</span>
+            <span class="t-body" style="font-size:12px">· 상태 sent · 발송 24/24</span>
+          </div>
         </dialog>
       `;
 
@@ -1798,6 +1826,11 @@
       root.querySelectorAll('[data-cal-open]').forEach(btn => btn.addEventListener('click', () => calModal.showModal()));
       root.querySelectorAll('[data-cal-close]').forEach(btn => btn.addEventListener('click', () => calModal.close()));
       calModal.addEventListener('click', (e) => { if (e.target === calModal) calModal.close(); });
+
+      const reviewModal = document.getElementById('snu-review-modal');
+      root.querySelectorAll('[data-review-open]').forEach(btn => btn.addEventListener('click', () => reviewModal.showModal()));
+      root.querySelectorAll('[data-review-close]').forEach(btn => btn.addEventListener('click', () => reviewModal.close()));
+      reviewModal.addEventListener('click', (e) => { if (e.target === reviewModal) reviewModal.close(); });
 
       // Wire up all elements with data-nav
       root.querySelectorAll('[data-nav]').forEach(el => {
