@@ -3126,6 +3126,8 @@
     };
 
     // ---------- AI 관리자 챗봇 (베타) ----------
+    let aiHistory = []; // 챗봇 대화 맥락 — 서버가 매 요청을 독립 대화로 처리하므로 클라이언트에서 들고 다님
+
     const AI_FIELD_LABELS = {
       position: '직위', department: '부서/학과', email: '이메일', phone: '전화', expertise: '전문 분야',
       wftc_status: '협의회 가입 상태', membership_tier: '협의회 등급', member_type: '회원 유형', join_date: '가입일',
@@ -3212,8 +3214,9 @@
       document.getElementById('ai-agent-proposal').innerHTML = '';
       const sendBtn = document.getElementById('ai-agent-send');
       sendBtn.disabled = true;
+      const userTurnText = message || (file ? `[첨부파일: ${file.name}]` : '');
       try {
-        const body = { message };
+        const body = { message, history: aiHistory };
         if (file) {
           body.fileBase64 = await fileToBase64(file);
           body.mediaType = file.type || 'application/pdf';
@@ -3223,9 +3226,21 @@
           method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (data.error) appendAiMsg('오류: ' + data.error, 'ai-msg-error');
-        else if (data.proposal) { appendAiMsg(data.proposal.summary || '변경안을 제안합니다.', 'ai-msg-bot'); renderAiProposal(data.proposal); }
-        else appendAiMsg(data.message || '(응답 없음)', 'ai-msg-bot');
+        if (data.error) {
+          appendAiMsg('오류: ' + data.error, 'ai-msg-error');
+        } else {
+          aiHistory.push({ role: 'user', content: userTurnText });
+          if (data.proposal) {
+            const summary = data.proposal.summary || '변경안을 제안합니다.';
+            appendAiMsg(summary, 'ai-msg-bot');
+            renderAiProposal(data.proposal);
+            aiHistory.push({ role: 'assistant', content: `[제안] ${data.proposal.person_name}: ${summary}` });
+          } else {
+            appendAiMsg(data.message || '(응답 없음)', 'ai-msg-bot');
+            aiHistory.push({ role: 'assistant', content: data.message || '' });
+          }
+          if (aiHistory.length > 20) aiHistory = aiHistory.slice(-20); // 대화가 길어지면 최근 10턴만 유지
+        }
       } catch (e) {
         appendAiMsg('오류: ' + e.message, 'ai-msg-error');
       } finally {

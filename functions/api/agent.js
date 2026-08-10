@@ -80,7 +80,16 @@ export async function onRequestPost({ request, env }) {
     text: body.message || '이 파일에서 인물 정보를 추출해서, 이미 등록된 사람 중 일치하는 사람을 찾아 어떤 값을 업데이트할지 제안해줘.',
   });
 
-  const messages = [{ role: 'user', content: userContent }];
+  // 클라이언트가 들고 다니는 이전 대화 맥락 — 이게 없으면 매 요청이 새 대화로 취급되어
+  // "그 사람 가입완료로 해줘" 같은 후속 요청이 누구를 말하는지 모르게 된다.
+  const history = Array.isArray(body.history)
+    ? body.history
+        .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .slice(-20)
+        .map(m => ({ role: m.role, content: m.content }))
+    : [];
+
+  const messages = [...history, { role: 'user', content: userContent }];
 
   try {
     for (let i = 0; i < 4; i++) {
