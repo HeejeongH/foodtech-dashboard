@@ -1694,14 +1694,14 @@
               <div class="snu-section-head">
                 <div>
                   <h2 class="snu-section-title"><span class="num">04</span>Newsletter</h2>
-                  <p class="snu-section-sub">뉴스레터 참여 현황 · 2026-08-10 기준 스냅샷 (실시간 연동 전)</p>
+                  <p class="snu-section-sub" id="newsletter-live-status">뉴스레터 참여 현황 · 연동 확인 중…</p>
                 </div>
                 <div style="display:flex; gap:12px; align-items:center">
                   <button class="snu-btn snu-btn-ghost" data-review-open style="padding:9px 16px; font-size:13px">📨 발송 검토 보기</button>
                   <a class="snu-section-link" href="https://admin.foodtech-center.org/admin/scores" target="_blank" rel="noopener">뉴스레터 관리자 열기 ↗</a>
                 </div>
               </div>
-              <p class="t-body" style="margin:0 0 16px">admin.foodtech-center.org는 로그인 보호 중이라 이 대시보드에는 최근 확인한 값을 수동으로 옮겨뒀습니다. 실시간 API 연동은 준비 중입니다.</p>
+              <p class="t-body" style="margin:0 0 16px">인기 분야·읽은 깊이는 최근 확인한 값을 옮겨둔 스냅샷입니다(해당 지표는 API가 없음). 참여도 순위는 admin.foodtech-center.org의 명단 CSV와 실시간 연동됩니다.</p>
 
               <div class="snu-events-layout">
                 <div style="display:flex; flex-direction:column; gap:24px">
@@ -1728,21 +1728,23 @@
                 </div>
                 <div class="snu-top-presenters">
                   <p class="snu-top-title">참여도 TOP 10</p>
-                  ${[
-                    ['이보경', '활발', 47.8], ['김은애', '활발', 39.9], ['김지우', '활발', 39.3],
-                    ['유정연', '수신거부', 38.6], ['김슬기', '활발', 33.5], ['오민하', '활발', 31.5],
-                    ['황희정', '활발', 31.4], ['류혜리', '관심', 20.0], ['안병민', '관심', 18.5],
-                    ['곽민재', '관심', 17.5],
-                  ].map(([name, tier, score], i) => `
-                    <div class="snu-presenter">
-                      <div class="rank">${String(i+1).padStart(2, '0')}</div>
-                      <div class="info">
-                        <div class="name">${esc(name)}</div>
-                        <div class="org">${esc(tier)}</div>
+                  <div id="snu-newsletter-top10">
+                    ${[
+                      ['이보경', '활발', 47.8], ['김은애', '활발', 39.9], ['김지우', '활발', 39.3],
+                      ['유정연', '수신거부', 38.6], ['김슬기', '활발', 33.5], ['오민하', '활발', 31.5],
+                      ['황희정', '활발', 31.4], ['류혜리', '관심', 20.0], ['안병민', '관심', 18.5],
+                      ['곽민재', '관심', 17.5],
+                    ].map(([name, tier, score], i) => `
+                      <div class="snu-presenter">
+                        <div class="rank">${String(i+1).padStart(2, '0')}</div>
+                        <div class="info">
+                          <div class="name">${esc(name)}</div>
+                          <div class="org">${esc(tier)}</div>
+                        </div>
+                        <div class="count">${score.toFixed(1)}<span class="u">점</span></div>
                       </div>
-                      <div class="count">${score.toFixed(1)}<span class="u">점</span></div>
-                    </div>
-                  `).join('')}
+                    `).join('')}
+                  </div>
                 </div>
               </div>
             </section>
@@ -1890,6 +1892,9 @@
       root.querySelectorAll('[data-review-open]').forEach(btn => btn.addEventListener('click', () => reviewModal.showModal()));
       root.querySelectorAll('[data-review-close]').forEach(btn => btn.addEventListener('click', () => reviewModal.close()));
       reviewModal.addEventListener('click', (e) => { if (e.target === reviewModal) reviewModal.close(); });
+
+      // ============= Newsletter 참여도 실시간 연동 (admin.foodtech-center.org) =============
+      loadNewsletterScores();
 
       // Wire up all elements with data-nav
       root.querySelectorAll('[data-nav]').forEach(el => {
@@ -2625,6 +2630,40 @@
       } catch (e) {
         toast('저장 실패: ' + e.message, 'error');
         btn.disabled = false; btn.textContent = '저장';
+      }
+    }
+
+    // ---------- Newsletter 참여도 실시간 연동 ----------
+    async function loadNewsletterScores() {
+      const statusEl = document.getElementById('newsletter-live-status');
+      const listEl = document.getElementById('snu-newsletter-top10');
+      if (!statusEl || !listEl) return; // 다른 화면으로 이동한 뒤 응답이 늦게 온 경우
+      try {
+        const res = await fetch('/api/newsletter-scores');
+        const data = await res.json();
+        if (data.error || !Array.isArray(data.rows)) throw new Error(data.error || '형식 오류');
+
+        const rows = data.rows
+          .map(r => ({ name: r['이름'], tier: r['등급'], score: Number(r['점수']) || 0 }))
+          .filter(r => r.name)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10);
+
+        listEl.innerHTML = rows.map((r, i) => `
+          <div class="snu-presenter">
+            <div class="rank">${String(i + 1).padStart(2, '0')}</div>
+            <div class="info">
+              <div class="name">${esc(r.name)}</div>
+              <div class="org">${esc(r.tier)}</div>
+            </div>
+            <div class="count">${r.score.toFixed(1)}<span class="u">점</span></div>
+          </div>
+        `).join('') || '<p style="color:rgba(255,255,255,.6); font-size:13px; margin:0">데이터가 없습니다</p>';
+
+        statusEl.textContent = `뉴스레터 참여 현황 · 실시간 연동 · 총 ${data.rows.length}명`;
+      } catch (e) {
+        statusEl.textContent = '뉴스레터 참여 현황 · 실시간 연동 실패 — 최근 확인한 값(스냅샷) 표시 중';
+        console.error('[newsletter-scores]', e);
       }
     }
 
