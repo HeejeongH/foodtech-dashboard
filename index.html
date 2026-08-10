@@ -3270,7 +3270,9 @@
         }
       });
       document.getElementById('ai-agent-send').addEventListener('click', sendAiMessage);
-      document.getElementById('ai-agent-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendAiMessage(); });
+      document.getElementById('ai-agent-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.isComposing) sendAiMessage(); // isComposing 체크 없으면 한글 조합 확정 시 Enter가 두 번 발생함
+      });
     }
 
     // ---------- Boot ----------
